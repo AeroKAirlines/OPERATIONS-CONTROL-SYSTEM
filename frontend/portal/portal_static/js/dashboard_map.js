@@ -165,10 +165,127 @@ const airportCoords = {
 
 function initMap() {
     map = L.map('map').setView([33.5, 125.0], 5); 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+
+    // 1. 다크 지도 (CARTO) - 지형만
+    const darkBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         subdomains: 'abcd', minZoom: 4, maxZoom: 10
-    }).addTo(map);
+    });
+    // 1-1. 다크 지도 - 라벨(지명)만
+    const darkLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd', minZoom: 4, maxZoom: 10
+    });
+
+    // 2. 라이트 지도 (CARTO) - 지형만
+    const lightBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd', minZoom: 4, maxZoom: 10
+    });
+    // 2-1. 라이트 지도 - 라벨(지명)만
+    const lightLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd', minZoom: 4, maxZoom: 10
+    });
+
+    // 3. 일반 지도 (Carto Voyager) - 지형만 (OpenStreetMap 디자인 유사)
+    const normalBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd', minZoom: 4, maxZoom: 10
+    });
+    // 3-1. 일반 지도 - 라벨(지명)만
+    const normalLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd', minZoom: 4, maxZoom: 10
+    });
+
+    // 4. 지형도 (Stadia Stamen Terrain) - 해상도가 높고 깔끔한 음영 지형도 (라벨 없음)
+    const topoBase = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; Stadia Maps &copy; Stamen Design',
+        subdomains: 'abcd', minZoom: 4, maxZoom: 18
+    });
+    // 4-1. 지형도 라벨 (Esri Reference Layer)
+    const topoLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        minZoom: 4, maxZoom: 13
+    });
+
+    // 4-2. 지형도 (OpenTopoMap) - 고도별 색상과 등고선이 있으나 지명이 많은 지형도
+    const topoColorBase = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenTopoMap',
+        subdomains: 'abc', minZoom: 4, maxZoom: 17
+    });
+    const topoColorLabels = L.layerGroup(); // OpenTopoMap은 라벨이 내장되어 있어 빈 레이어 사용
+
+    // 5. 위성 지도 (Esri) - 지형만 (원래 라벨 없음)
+    const satelliteBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri',
+        minZoom: 4, maxZoom: 10
+    });
+    // 5-1. 위성 지도 - 라벨(경계선 및 지명)만 (Esri Reference Layer)
+    const satelliteLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        minZoom: 4, maxZoom: 10
+    });
+
+    // 레이어 관리 객체
+    const baseLayers = {
+        "dark": darkBase,
+        "light": lightBase,
+        "normal": normalBase,
+        "topo": topoBase,
+        "topo_color": topoColorBase,
+        "satellite": satelliteBase
+    };
+
+    const labelLayers = {
+        "dark": darkLabels,
+        "light": lightLabels,
+        "normal": normalLabels,
+        "topo": topoLabels,
+        "topo_color": topoColorLabels,
+        "satellite": satelliteLabels
+    };
+
+    let currentStyle = "dark";
+    let showLabels = true;
+
+    // 기본 지도 렌더링
+    darkBase.addTo(map);
+    darkLabels.addTo(map);
+
+    // 스타일 변경 이벤트
+    const mapStyleSelect = document.getElementById('dashboard-map-style');
+    if (mapStyleSelect) {
+        mapStyleSelect.addEventListener('change', (e) => {
+            currentStyle = e.target.value;
+            updateMapStyle();
+        });
+    }
+
+    // 라벨 표시/숨김 이벤트
+    const toggleLabels = document.getElementById('toggle-map-labels');
+    if (toggleLabels) {
+        toggleLabels.addEventListener('change', (e) => {
+            showLabels = e.target.checked;
+            updateMapStyle();
+        });
+    }
+
+    function updateMapStyle() {
+        // 기존 모든 지형/라벨 지도 제거
+        Object.values(baseLayers).forEach(layer => map.hasLayer(layer) && map.removeLayer(layer));
+        Object.values(labelLayers).forEach(layer => map.hasLayer(layer) && map.removeLayer(layer));
+
+        // 지형(베이스) 렌더링
+        const selectedBase = baseLayers[currentStyle];
+        if (selectedBase) {
+            selectedBase.addTo(map);
+            
+            // 라벨(오버레이) 렌더링 (켜져있을 경우만)
+            if (showLabels) {
+                const selectedLabel = labelLayers[currentStyle];
+                if (selectedLabel) {
+                    selectedLabel.addTo(map);
+                }
+            }
+        }
+    }
 
     // 줌 레벨 변경 시 Data Block의 픽셀 오프셋을 유지하도록 위치 재계산
     map.on('zoomend', function() {

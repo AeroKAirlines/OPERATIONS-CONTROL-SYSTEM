@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
     inputFlight.addEventListener('input', renderFlightList);
 
     // Initial load
+    if (typeof initReplayMap === 'function') {
+        initReplayMap();
+    }
     loadDailyFlights();
 
     // Layer Toggle Setup (Map Controls)
@@ -80,6 +83,22 @@ document.addEventListener('DOMContentLoaded', () => {
             btnLayerToggle.classList.remove('active');
         }
     });
+
+    // Info Panel Toggle Setup
+    const btnInfoToggle = document.getElementById('btn-info-toggle');
+    const infoPanel = document.getElementById('flight-info-panel');
+    if (btnInfoToggle && infoPanel) {
+        btnInfoToggle.addEventListener('click', () => {
+            const isHidden = infoPanel.style.display === 'none';
+            infoPanel.style.display = isHidden ? 'flex' : 'none';
+            
+            if (isHidden) {
+                btnInfoToggle.classList.add('active');
+            } else {
+                btnInfoToggle.classList.remove('active');
+            }
+        });
+    }
 
     setupTimelineEvents();
 });
@@ -107,10 +126,24 @@ async function loadFlightData(flightId, el) {
         }
         
         // Update Info Panel
-        document.getElementById('flight-info-panel').style.display = 'block';
+        document.getElementById('flight-info-wrapper').style.display = 'flex';
         const formatTimeWithZ = (t) => t ? t + (t.toString().toUpperCase().endsWith('Z') ? '' : 'Z') : '--:--';
 
-        document.getElementById('info-flight-num').innerText = data.master.flight_number || '---';
+        const flightNumSpan = document.querySelector('#info-flight-num span');
+        if (flightNumSpan) {
+            flightNumSpan.innerText = data.master.flight_number || '---';
+        } else {
+            document.getElementById('info-flight-num').innerText = data.master.flight_number || '---';
+        }
+
+        const btnOfp = document.getElementById('btn-replay-ofp');
+        if (btnOfp) {
+            btnOfp.style.display = 'inline-block';
+            btnOfp.onclick = () => {
+                openOfpModal(flightId, data.master.flight_number, data.master.dep, data.master.arr);
+            };
+        }
+
         document.getElementById('info-dep').innerText = data.master.dep || '---';
         document.getElementById('info-arr').innerText = data.master.arr || '---';
         document.getElementById('info-std').innerText = formatTimeWithZ(data.master.std);
@@ -207,7 +240,7 @@ function updateTimelineUI(targetTs) {
         prevPos = nextPos;
     } else {
         for (let i = 0; i < currentPositions.length - 1; i++) {
-            if (currentPositions[i].timestamp <= targetTs && targetTs <= currentPositions[i+1].timestamp) {
+            if (currentPositions[i].timestamp <= targetTs && targetTs < currentPositions[i+1].timestamp) {
                 prevPos = currentPositions[i];
                 nextPos = currentPositions[i+1];
                 if (prevPos.timestamp === nextPos.timestamp) nextPos = prevPos;

@@ -14,6 +14,24 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+ICAO_TO_IATA = {
+    "RKTU": "CJJ", "RKSI": "ICN", "RKPC": "CJU",
+    "RJBB": "KIX", "RJAA": "NRT", "RJFF": "FUK",
+    "RJCC": "CTS", "RJGG": "NGO", "ROAH": "OKA",
+    "RJAH": "IBR", "RJCB": "OBO", "RJFR": "KKJ",
+    "RJOA": "HIJ", "RCTP": "TPE", "ZMCK": "UBN"
+}
+
+def parse_route_to_iata(route_str):
+    if not route_str: return None, None
+    parts = route_str.split('/')
+    if len(parts) == 2:
+        dep = parts[0].strip().upper()
+        arr = parts[1].strip().upper()
+        return ICAO_TO_IATA.get(dep, dep), ICAO_TO_IATA.get(arr, arr)
+    return None, None
+
+
 _is_first_acars_run = True
 
 def _extract_flight_number_from_subject(subject: str) -> str:
@@ -93,7 +111,7 @@ def _resolve_master_flight_date(db: Session, flight_num: str, report_dt: datetim
         valid_candidates = []
         for mf in candidates:
             # 비교를 위한 출발 기준 시간 도출 (실제 출발 시간 우선, 없으면 스케줄 시간)
-            ref_time_str = getattr(mf, "out_time_z", None) or getattr(mf, "off_time_z", None) or getattr(mf, "std_z", None)
+            ref_time_str = getattr(mf, "std_z", None) or getattr(mf, "out_time_z", None) or getattr(mf, "off_time_z", None)
             
             if ref_time_str and len(ref_time_str) >= 4:
                 try:
@@ -204,13 +222,42 @@ def run_acars_fetch_job(limit: int = 15, db: Any = None, since_days: int = 0):
                 
                 flight_num = item.get("flight_number") or _extract_flight_number_from_subject(str(raw_subj))
                 
-                if flight_num and flight_num.lower() in ("rf0", "eok0"):
-                    continue
-                    
+                report_dt = _get_flight_datetime(str(report_time) if report_time else "")
+                # [ACARS Dummy Flight Auto-Correct]
+                if flight_num and flight_num.lower() in ("rf0", "eok0", "rf123", "eok123", "eok000", "rf000"):
+                    corrected = False
+                    dep_iata, arr_iata = parse_route_to_iata(item.get("route"))
+                    if dep_iata and arr_iata and reg and report_dt:
+                        start_date = (report_dt - timedelta(days=1)).strftime("%Y-%m-%d")
+                        end_date = (report_dt + timedelta(days=1)).strftime("%Y-%m-%d")
+                        sched_candidates = db.query(MasterFlight).filter(
+                            MasterFlight.aircraft_reg == reg,
+                            MasterFlight.dep_airport == dep_iata,
+                            MasterFlight.arr_airport == arr_iata,
+                            MasterFlight.flight_date_z >= start_date,
+                            MasterFlight.flight_date_z <= end_date
+                        ).all()
+                        best_match = None
+                        min_diff = 10800 # 3 hours
+                        for sc in sched_candidates:
+                            ref_str = getattr(sc, "std_z", None)
+                            if ref_str and len(ref_str) >= 4:
+                                try:
+                                    sc_dt = datetime.strptime(f"{sc.flight_date_z} {ref_str[:4]}", "%Y-%m-%d %H%M")
+                                    diff = abs((report_dt - sc_dt).total_seconds())
+                                    if diff < min_diff:
+                                        min_diff = diff
+                                        best_match = sc.flight_number
+                                except: pass
+                        if best_match:
+                            logger.info(f"Auto-corrected dummy flight {flight_num} to {best_match}")
+                            flight_num = best_match
+                            corrected = True
+                    if not corrected and flight_num.lower() in ("rf0", "eok0"):
+                        continue
+
                 if not flight_num:
                     flight_num = f"UNK_{reg}" if reg else "UNKNOWN"
-
-                report_dt = _get_flight_datetime(str(report_time) if report_time else "")
                 
                 # [ACARS Early Flight Number Fix]
                 # Pilots often enter the next flight number in the FMS during descent or taxi-in.
@@ -241,11 +288,14 @@ def run_acars_fetch_job(limit: int = 15, db: Any = None, since_days: int = 0):
                     
                     master_record = db.query(MasterFlight).filter(MasterFlight.id == master_id).first()
                     if not master_record:
+                        dep_iata, arr_iata = parse_route_to_iata(item.get('route'))
                         master_record = MasterFlight(
                             id=master_id,
                             flight_date_z=flight_date,
                             flight_number=flight_num,
-                            aircraft_reg=reg
+                            aircraft_reg=reg,
+                            dep_airport=dep_iata,
+                            arr_airport=arr_iata
                         )
                         db.add(master_record)
                         db.flush()
@@ -296,62 +346,73 @@ def run_acars_fetch_job(limit: int = 15, db: Any = None, since_days: int = 0):
                         )
                         db.add(oooi_record)
                         db.flush()
-                        
-                    if item.get("out_time"):
-                        setattr(oooi_record, "out_time", str(item.get("out_time")))
-                    if msg_type == "OUTRP" and item.get("fob"):
-                        setattr(oooi_record, "out_fob", str(item.get("fob")))
-                    
-                    if item.get("off_time"):
-                        setattr(oooi_record, "off_time", str(item.get("off_time")))
-                    if msg_type == "OFFRP" and item.get("fob"):
-                        setattr(oooi_record, "off_fob", str(item.get("fob")))
-                        
-                    if item.get("on_time"):
-                        setattr(oooi_record, "on_time", str(item.get("on_time")))
-                    if msg_type == "ONRP" and item.get("fob"):
-                        setattr(oooi_record, "on_fob", str(item.get("fob")))
-                        
-                    if item.get("in_time"):
-                        setattr(oooi_record, "in_time", str(item.get("in_time")))
-                    if msg_type == "INRP" and item.get("fob"):
-                        setattr(oooi_record, "in_fob", str(item.get("fob")))
-                        
                     master_id = f"{flight_date}_{flight_num}"
                     master_record = db.query(MasterFlight).filter(MasterFlight.id == master_id).first()
                     if not master_record:
+                        dep_iata, arr_iata = parse_route_to_iata(item.get("route"))
                         master_record = MasterFlight(
                             id=master_id,
                             flight_date_z=flight_date,
                             flight_number=flight_num,
-                            aircraft_reg=reg
+                            aircraft_reg=reg,
+                            dep_airport=dep_iata,
+                            arr_airport=arr_iata
                         )
                         db.add(master_record)
                         db.flush()
                     else:
                         if reg: setattr(master_record, "aircraft_reg", reg)
-                        
+
+                    current_off = getattr(oooi_record, "off_time") or getattr(master_record, "off_time_z")
+                    current_on  = getattr(oooi_record, "on_time") or getattr(master_record, "on_time_z")
+                    current_in  = getattr(oooi_record, "in_time") or getattr(master_record, "in_time_z")
+
+                    can_update_out = not bool(current_off)
+                    can_update_off = not bool(current_on)
+                    can_update_on  = not bool(current_in)
+
+                    if item.get("out_time") and can_update_out:
+                        setattr(oooi_record, "out_time", str(item.get("out_time")))
+                    if msg_type == "OUTRP" and item.get("fob") and can_update_out:
+                        setattr(oooi_record, "out_fob", str(item.get("fob")))
+
+                    if item.get("off_time") and can_update_off:
+                        setattr(oooi_record, "off_time", str(item.get("off_time")))
+                    if msg_type == "OFFRP" and item.get("fob") and can_update_off:
+                        setattr(oooi_record, "off_fob", str(item.get("fob")))
+
+                    if item.get("on_time") and can_update_on:
+                        setattr(oooi_record, "on_time", str(item.get("on_time")))
+                    if msg_type == "ONRP" and item.get("fob") and can_update_on:
+                        setattr(oooi_record, "on_fob", str(item.get("fob")))
+
+                    if item.get("in_time"):
+                        setattr(oooi_record, "in_time", str(item.get("in_time")))
+                    if msg_type == "INRP" and item.get("fob"):
+                        setattr(oooi_record, "in_fob", str(item.get("fob")))
+
                     if item.get("eta"):
                         setattr(oooi_record, "eta", str(item.get("eta")))
                         master_record.eta_z = str(item.get("eta"))
                     if item.get("dor"): setattr(oooi_record, "dor", str(item.get("dor")))
-                        
+
                     from backend.data_sources.mvt.models import LiveMVT
                     latest_mvt = db.query(LiveMVT).filter(LiveMVT.flight_id == master_id).order_by(LiveMVT.created_at.desc()).first()
-                    
-                    if item.get("out_time") and not (latest_mvt and latest_mvt.block_off_time):
+
+                    if item.get("out_time") and can_update_out and not (latest_mvt and latest_mvt.block_off_time):
                         master_record.__setattr__("out_time_z", str(item.get("out_time")))
-                    if item.get("off_time") and not (latest_mvt and latest_mvt.take_off_time):
+                    if item.get("off_time") and can_update_off and not (latest_mvt and latest_mvt.take_off_time):
                         master_record.__setattr__("off_time_z", str(item.get("off_time")))
-                    if item.get("on_time") and not (latest_mvt and latest_mvt.touch_down_time):
+                    if item.get("on_time") and can_update_on and not (latest_mvt and latest_mvt.touch_down_time):
                         master_record.__setattr__("on_time_z", str(item.get("on_time")))
                     if item.get("in_time") and not (latest_mvt and latest_mvt.block_in_time):
                         master_record.__setattr__("in_time_z", str(item.get("in_time")))
-                    
+
                     if getattr(master_record, "in_time_z"): master_record.__setattr__("status", "ARRIVED")
                     elif getattr(master_record, "on_time_z"): master_record.__setattr__("status", "LANDED")
                     elif getattr(master_record, "off_time_z"): master_record.__setattr__("status", "AIRBORNE")
                     elif getattr(master_record, "out_time_z"): master_record.__setattr__("status", "DEPARTED")
+
                         
                     current_msgs = getattr(oooi_record, "raw_messages")
                     raw_msgs = dict(current_msgs) if current_msgs is not None else {}

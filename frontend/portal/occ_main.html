@@ -242,6 +242,24 @@
 
                 <!-- Expanded Panel -->
                 <div id="map-controls" class="glass-panel" style="display: none;">
+                    <div class="panel-header">MAP STYLE</div>
+                    <select id="dashboard-map-style" style="background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 6px 8px; width: 100%; outline: none; font-size: 11px; margin-bottom: 8px; cursor: pointer;">
+                        <option value="dark">다크 지도 (Dark)</option>
+                        <option value="light">라이트 지도 (Light)</option>
+                        <option value="normal">일반 지도 (Normal)</option>
+                        <option value="topo">지형도 (Terrain)</option>
+                        <option value="topo_color">지형도 (Topo/Color)</option>
+                        <option value="satellite">위성 지도 (Satellite)</option>
+                    </select>
+
+                    <label class="custom-checkbox-label" style="margin-bottom: 4px;">
+                        <input type="checkbox" id="toggle-map-labels" checked> 
+                        <span class="checkmark"></span>
+                        <span class="label-text">SHOW MAP LABELS</span>
+                    </label>
+
+                    <div class="panel-divider"></div>
+
                     <div class="panel-header">LAYERS & FILTERS</div>
                     
                     <label class="custom-checkbox-label">

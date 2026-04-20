@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/portal_static/css/portal_style.css">
     <link rel="stylesheet" href="/portal_static/css/dashboard_map.css">
+    <link rel="stylesheet" href="/portal_static/css/dashboard_ofp.css">
     <link rel="stylesheet" href="/portal_static/css/replay/replay.css">
     
     <!-- Google Fonts -->
@@ -51,57 +52,69 @@
 
         <!-- Map Container -->
         <section class="replay-map-container">
-            <div id="flight-info-panel" class="flight-info-card" style="display: none; position: absolute; top: 20px; left: 20px; z-index: 1000; width: 320px; margin-top: 0;">
-                <h3 id="info-flight-num">EOK---</h3>
-                <div class="flight-info-list">
-                    <div class="info-row">
-                        <span class="info-label">ROUTE</span>
-                        <div class="info-val-group">
-                            <span class="info-val highlight-blue" id="info-dep">---</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" style="margin: 0 6px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                            <span class="info-val highlight-blue" id="info-arr">---</span>
-                        </div>
+            <div id="flight-info-wrapper" class="layer-control-wrapper" style="display: none; top: 20px; left: 20px; right: auto; align-items: flex-start;">
+                <button id="btn-info-toggle" class="layer-toggle-btn active" title="Flight Info">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                </button>
+
+                <div id="flight-info-panel" class="glass-panel" style="width: 280px; margin-top: 0;">
+                    <div class="panel-header" id="info-flight-num" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px; margin-bottom: 8px; font-size: 16px; font-weight: 800;">
+                        <span>EOK---</span>
+                        <button id="btn-replay-ofp" class="modern-btn secondary" style="padding: 2px 8px; font-size: 10px; display: none;">OFP 보기</button>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">STD / STA</span>
-                        <div class="info-val-group">
-                            <span class="info-val highlight-white" id="info-std">---</span>
-                            <span style="color:#475569; margin: 0 6px;">/</span>
-                            <span class="info-val highlight-white" id="info-sta">---</span>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">ATD / ATA</span>
-                        <div class="info-val-group">
-                            <span class="info-val highlight-yellow" id="info-atd">---</span>
-                            <span style="color:#475569; margin: 0 6px;">/</span>
-                            <span class="info-val highlight-yellow" id="info-ata">---</span>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">AIRCRAFT</span>
-                        <span class="info-val highlight-white" id="info-reg">---</span>
-                    </div>
-                </div>
-                
-                <!-- 🌟 OOOI FOB Data Section -->
-                <div class="fob-log-section">
-                    <div class="fob-title">FUEL LOG (FOB)</div>
-                    <div class="flight-info-list">
-                        <div class="info-row">
-                            <span class="info-label">OUT / OFF</span>
-                            <div class="info-val-group">
-                                <span class="info-val highlight-white" id="info-out-fob">---</span>
-                                <span style="color:#475569; margin: 0 6px;">/</span>
-                                <span class="info-val highlight-white" id="info-off-fob">---</span>
+                    <div class="flight-info-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: #8b9bb4; font-weight: 600;">ROUTE</span>
+                            <div style="display: flex; align-items: center;">
+                                <span style="color: #60a5fa; font-weight: 700; font-family: 'Inter', sans-serif; letter-spacing: 0.5px;" id="info-dep">---</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" style="margin: 0 6px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                <span style="color: #60a5fa; font-weight: 700; font-family: 'Inter', sans-serif; letter-spacing: 0.5px;" id="info-arr">---</span>
                             </div>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">ON / IN</span>
-                            <div class="info-val-group">
-                                <span class="info-val highlight-white" id="info-on-fob">---</span>
-                                <span style="color:#475569; margin: 0 6px;">/</span>
-                                <span class="info-val highlight-white" id="info-in-fob">---</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: #8b9bb4; font-weight: 600;">STD / STA</span>
+                            <div style="display: flex; align-items: center; font-family: 'Inter', sans-serif; letter-spacing: 0.5px; font-weight: 600;">
+                                <span style="color: #e2e8f0;" id="info-std">---</span>
+                                <span style="color: #475569; margin: 0 4px;">/</span>
+                                <span style="color: #e2e8f0;" id="info-sta">---</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: #8b9bb4; font-weight: 600;">ATD / ATA</span>
+                            <div style="display: flex; align-items: center; font-family: 'Inter', sans-serif; letter-spacing: 0.5px; font-weight: 600;">
+                                <span style="color: #fca311;" id="info-atd">---</span>
+                                <span style="color: #475569; margin: 0 4px;">/</span>
+                                <span style="color: #fca311;" id="info-ata">---</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: #8b9bb4; font-weight: 600;">AIRCRAFT</span>
+                            <span style="color: #e2e8f0; font-family: 'Inter', sans-serif; letter-spacing: 0.5px; font-weight: 700;" id="info-reg">---</span>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-divider"></div>
+                    
+                    <div class="panel-header" style="font-size: 11px; color: #94a3b8; border: none; padding: 0; margin-bottom: 6px;">FUEL LOG (FOB)</div>
+                    <div class="flight-info-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: #8b9bb4; font-weight: 600;">OUT / OFF</span>
+                            <div style="display: flex; align-items: center; font-family: 'Inter', sans-serif; letter-spacing: 0.5px; font-weight: 600;">
+                                <span style="color: #e2e8f0;" id="info-out-fob">---</span>
+                                <span style="color: #475569; margin: 0 4px;">/</span>
+                                <span style="color: #e2e8f0;" id="info-off-fob">---</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: #8b9bb4; font-weight: 600;">ON / IN</span>
+                            <div style="display: flex; align-items: center; font-family: 'Inter', sans-serif; letter-spacing: 0.5px; font-weight: 600;">
+                                <span style="color: #e2e8f0;" id="info-on-fob">---</span>
+                                <span style="color: #475569; margin: 0 4px;">/</span>
+                                <span style="color: #e2e8f0;" id="info-in-fob">---</span>
                             </div>
                         </div>
                     </div>
@@ -118,6 +131,24 @@
                 </button>
 
                 <div id="map-controls" class="glass-panel" style="display: none;">
+                    <div class="panel-header">MAP STYLE</div>
+                    <select id="replay-map-style" style="background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 6px 8px; width: 100%; outline: none; font-size: 11px; margin-bottom: 8px; cursor: pointer;">
+                        <option value="dark">다크 지도 (Dark)</option>
+                        <option value="light">라이트 지도 (Light)</option>
+                        <option value="normal">일반 지도 (Normal)</option>
+                        <option value="topo">지형도 (Terrain)</option>
+                        <option value="topo_color">지형도 (Topo/Color)</option>
+                        <option value="satellite">위성 지도 (Satellite)</option>
+                    </select>
+
+                    <label class="custom-checkbox-label" style="margin-bottom: 4px;">
+                        <input type="checkbox" id="toggle-map-labels" checked> 
+                        <span class="checkmark"></span>
+                        <span class="label-text">SHOW MAP LABELS</span>
+                    </label>
+
+                    <div class="panel-divider"></div>
+
                     <div class="panel-header">LAYERS & FILTERS</div>
                     
                     <label class="custom-checkbox-label">
@@ -194,9 +225,23 @@
         </div>
     </footer>
 
+    <!-- OFP Modal -->
+    <div id="ofp-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-flight-num">FLIGHT</h3>
+                <button class="close-btn" id="btn-close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-ofp-details">
+                Loading...
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/portal_static/js/config.js"></script>
+    <script src="/portal_static/js/dashboard_ofp.js"></script>
     <script src="/portal_static/js/replay/replay_main.js"></script>
     <script src="/portal_static/js/replay/replay_map.js"></script>
 </body>

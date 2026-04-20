@@ -7,6 +7,9 @@ let actualLineLayer;
 let fixLayerGroup;
 let acarsLayerGroup;
 let planeMarker;
+let planeLabelMarker;
+let planeLeaderLine;
+let planeLabelOffset = null;
 
 let mapFilterState = {
     showFixes: false,
@@ -77,12 +80,126 @@ function initReplayMap() {
         
         L.control.zoom({ position: 'bottomright' }).addTo(replayMap);
 
-        // Dark theme map tiles (similar to dashboard)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors',
-            subdomains: 'abcd',
-            maxZoom: 19
-        }).addTo(replayMap);
+        // 1. 다크 지도 (CARTO) - 지형만
+        const darkBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd', minZoom: 4, maxZoom: 19
+        });
+        // 1-1. 다크 지도 - 라벨(지명)만
+        const darkLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', minZoom: 4, maxZoom: 19
+        });
+
+        // 2. 라이트 지도 (CARTO) - 지형만
+        const lightBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd', minZoom: 4, maxZoom: 19
+        });
+        // 2-1. 라이트 지도 - 라벨(지명)만
+        const lightLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', minZoom: 4, maxZoom: 19
+        });
+
+        // 3. 일반 지도 (Carto Voyager) - 지형만 (OpenStreetMap 디자인 유사)
+        const normalBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd', minZoom: 4, maxZoom: 19
+        });
+        // 3-1. 일반 지도 - 라벨(지명)만
+        const normalLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', minZoom: 4, maxZoom: 19
+        });
+
+        // 4. 지형도 (Stadia Stamen Terrain) - 해상도가 높고 깔끔한 음영 지형도 (라벨 없음)
+        const topoBase = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; Stadia Maps &copy; Stamen Design',
+            subdomains: 'abcd', minZoom: 4, maxZoom: 18
+        });
+        // 4-1. 지형도 라벨 (Esri Reference Layer)
+        const topoLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+            minZoom: 4, maxZoom: 13
+        });
+
+        // 4-2. 지형도 (OpenTopoMap) - 고도별 색상과 등고선이 있으나 지명이 많은 지형도
+        const topoColorBase = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenTopoMap',
+            subdomains: 'abc', minZoom: 4, maxZoom: 17
+        });
+        const topoColorLabels = L.layerGroup(); // OpenTopoMap은 라벨이 내장되어 있어 빈 레이어 사용
+
+        // 5. 위성 지도 (Esri) - 지형만 (원래 라벨 없음)
+        const satelliteBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri',
+            minZoom: 4, maxZoom: 19
+        });
+        // 5-1. 위성 지도 - 라벨(경계선 및 지명)만 (Esri Reference Layer)
+        const satelliteLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+            minZoom: 4, maxZoom: 19
+        });
+
+        // 레이어 관리 객체
+        const baseLayers = {
+            "dark": darkBase,
+            "light": lightBase,
+            "normal": normalBase,
+            "topo": topoBase,
+            "topo_color": topoColorBase,
+            "satellite": satelliteBase
+        };
+
+        const labelLayers = {
+            "dark": darkLabels,
+            "light": lightLabels,
+            "normal": normalLabels,
+            "topo": topoLabels,
+            "topo_color": topoColorLabels,
+            "satellite": satelliteLabels
+        };
+
+        let currentStyle = "dark";
+        let showLabels = true;
+
+        // 기본 지도 렌더링
+        darkBase.addTo(replayMap);
+        darkLabels.addTo(replayMap);
+
+        // 스타일 변경 이벤트
+        const mapStyleSelect = document.getElementById('replay-map-style');
+        if (mapStyleSelect) {
+            mapStyleSelect.addEventListener('change', (e) => {
+                currentStyle = e.target.value;
+                updateMapStyle();
+            });
+        }
+
+        // 라벨 표시/숨김 이벤트
+        const toggleLabels = document.getElementById('toggle-map-labels');
+        if (toggleLabels) {
+            toggleLabels.addEventListener('change', (e) => {
+                showLabels = e.target.checked;
+                updateMapStyle();
+            });
+        }
+
+        function updateMapStyle() {
+            // 기존 모든 지형/라벨 지도 제거
+            Object.values(baseLayers).forEach(layer => replayMap.hasLayer(layer) && replayMap.removeLayer(layer));
+            Object.values(labelLayers).forEach(layer => replayMap.hasLayer(layer) && replayMap.removeLayer(layer));
+
+            // 지형(베이스) 렌더링
+            const selectedBase = baseLayers[currentStyle];
+            if (selectedBase) {
+                selectedBase.addTo(replayMap);
+                
+                // 라벨(오버레이) 렌더링 (켜져있을 경우만)
+                if (showLabels) {
+                    const selectedLabel = labelLayers[currentStyle];
+                    if (selectedLabel) {
+                        selectedLabel.addTo(replayMap);
+                    }
+                }
+            }
+        }
 
         fixLayerGroup = L.layerGroup().addTo(replayMap);
         acarsLayerGroup = L.layerGroup().addTo(replayMap);
@@ -93,6 +210,9 @@ function initReplayMap() {
         if (planLineLayer) { replayMap.removeLayer(planLineLayer); planLineLayer = null; }
         if (actualLineLayer) { replayMap.removeLayer(actualLineLayer); actualLineLayer = null; }
         if (planeMarker) { replayMap.removeLayer(planeMarker); planeMarker = null; }
+        if (planeLabelMarker) { replayMap.removeLayer(planeLabelMarker); planeLabelMarker = null; }
+        if (planeLeaderLine) { replayMap.removeLayer(planeLeaderLine); planeLeaderLine = null; }
+        planeLabelOffset = null;
         fixLayerGroup.clearLayers();
         acarsLayerGroup.clearLayers();
     }
@@ -386,7 +506,7 @@ function updatePlaneMarker(targetTs, historyPositions) {
             isLast = true;
         } else {
             for (let i = 0; i < currentPositions.length - 1; i++) {
-                if (currentPositions[i].timestamp <= targetTs && targetTs <= currentPositions[i+1].timestamp) {
+                if (currentPositions[i].timestamp <= targetTs && targetTs < currentPositions[i+1].timestamp) {
                     prevPos = currentPositions[i];
                     nextPos = currentPositions[i+1];
                     if (prevPos.timestamp === nextPos.timestamp) {
@@ -571,27 +691,66 @@ function updatePlaneMarker(targetTs, historyPositions) {
             </div>
         `;
 
-        const currentTooltip = planeMarker.getTooltip();
-        if (!currentTooltip) {
-            planeMarker.bindTooltip(blockHtml, {
-                permanent: mapFilterState.acTooltipAlways,
-                direction: 'right',
-                className: 'transparent-tooltip',
-                offset: [12, 0]
-            });
-        } else {
-            if (currentTooltip.options.permanent !== mapFilterState.acTooltipAlways) {
-                planeMarker.unbindTooltip();
-                planeMarker.bindTooltip(blockHtml, {
-                    permanent: mapFilterState.acTooltipAlways,
-                    direction: 'right',
-                    className: 'transparent-tooltip',
-                    offset: [12, 0]
-                });
-            } else {
-                planeMarker.setTooltipContent(blockHtml);
-            }
+        planeMarker.unbindTooltip();
+
+        if (!planeLabelOffset) {
+            planeLabelOffset = L.point(30, -30);
         }
+
+        let acPoint = replayMap.latLngToLayerPoint(targetLatLng);
+        let labelLatLng = replayMap.layerPointToLatLng(acPoint.add(planeLabelOffset));
+
+        const dataBlockIcon = L.divIcon({
+            html: blockHtml,
+            className: '',
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+        });
+
+        if (planeLabelMarker) {
+            planeLabelMarker.setLatLng(labelLatLng);
+            planeLabelMarker.setIcon(dataBlockIcon);
+        } else {
+            planeLabelMarker = L.marker(labelLatLng, {
+                icon: dataBlockIcon,
+                draggable: true,
+                zIndexOffset: 1000
+            });
+            
+            planeLabelMarker.on('drag', function(e) {
+                if (planeLeaderLine && planeMarker) {
+                    planeLeaderLine.setLatLngs([planeMarker.getLatLng(), e.target.getLatLng()]);
+                }
+            });
+            
+            planeLabelMarker.on('dragend', function(e) {
+                if (planeMarker) {
+                    let newLatLng = e.target.getLatLng();
+                    let newAcPt = replayMap.latLngToLayerPoint(planeMarker.getLatLng());
+                    let lblPt = replayMap.latLngToLayerPoint(newLatLng);
+                    planeLabelOffset = lblPt.subtract(newAcPt);
+                }
+            });
+        }
+
+        if (planeLeaderLine) {
+            planeLeaderLine.setLatLngs([targetLatLng, labelLatLng]);
+        } else {
+            planeLeaderLine = L.polyline([targetLatLng, labelLatLng], {
+                color: '#888',
+                weight: 1.5,
+                opacity: 0.8
+            });
+        }
+
+        if (isDataBlockVisible) {
+            if (!replayMap.hasLayer(planeLabelMarker)) planeLabelMarker.addTo(replayMap);
+            if (!replayMap.hasLayer(planeLeaderLine)) planeLeaderLine.addTo(replayMap);
+        } else {
+            if (replayMap.hasLayer(planeLabelMarker)) replayMap.removeLayer(planeLabelMarker);
+            if (replayMap.hasLayer(planeLeaderLine)) replayMap.removeLayer(planeLeaderLine);
+        }
+
     } catch (e) {
         console.error("Marker update error:", e);
     }
