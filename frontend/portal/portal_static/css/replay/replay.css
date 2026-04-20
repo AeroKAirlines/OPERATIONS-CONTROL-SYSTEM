@@ -1,0 +1,795 @@
+/* =========================================================================
+   Aero K OCC Replay Map - Modern CSS Overhaul
+   ========================================================================= */
+
+/* --- Base Layout --- */
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #070d1a;
+    color: #e2e8f0;
+}
+
+body, * {
+    font-family: 'Inter', 'Noto Sans KR', sans-serif;
+    box-sizing: border-box;
+}
+
+/* Custom Scrollbar for all elements */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* --- Header --- */
+.ops-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: #070d1a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.logo-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-img {
+    height: 24px;
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
+}
+
+.logo-title h1 {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin: 0;
+    color: #f1f5f9;
+}
+
+.logo-title .occ-text {
+    color: #fca311;
+}
+
+.modern-btn {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modern-btn:hover {
+    background-color: #334155;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.modern-btn.secondary {
+    background: transparent;
+}
+.modern-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* --- Main Layout --- */
+.replay-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+/* --- Sidebar --- */
+.replay-sidebar {
+    width: 320px;
+    background: #070d1a;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    z-index: 1000;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.search-box h3 {
+    color: #fff;
+    font-size: 14px;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 10px;
+}
+
+.search-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-group svg {
+    position: absolute;
+    left: 12px;
+    color: #8b9bb4;
+}
+
+.modern-input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.25);
+    color: #fff;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.modern-input:focus {
+    border-color: #fca311;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* Flight List Container */
+.flight-results-container {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+}
+
+/* Individual Flight Result Item */
+.search-result-item {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 10px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.search-result-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: transparent;
+    transition: background 0.2s;
+}
+
+.search-result-item:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.search-result-item.active {
+    background: rgba(252, 163, 17, 0.15);
+    border-color: #fca311;
+}
+
+.search-result-item.active::before {
+    background: #fca311;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.result-flight-no {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.result-status {
+    color: #8b9bb4;
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.result-details {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.result-std {
+    color: #8b9bb4;
+}
+
+/* Flight Info Card Panel */
+.flight-info-card {
+    background: rgba(12, 16, 28, 0.85);
+    border-radius: 8px;
+    padding: 14px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+#info-flight-num {
+    color: #e2e8f0;
+    font-size: 22px;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0 4px 12px 4px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+#info-flight-num::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 18px;
+    background-color: #3b82f6;
+    border-radius: 3px;
+    margin-right: 10px;
+}
+
+.flight-info-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+    position: relative;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.info-val-group {
+    display: flex;
+    align-items: center;
+}
+
+.info-val {
+    font-family: 'Inter', 'Noto Sans KR', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.highlight-blue { color: #60a5fa; }
+.highlight-yellow { color: #fcd34d; }
+.highlight-white { color: #f1f5f9; }
+
+.fob-log-section {
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+.fob-title {
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 11px;
+    margin-bottom: 6px;
+    padding: 0 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.search-box h3 {
+    color: #f8fafc;
+    font-size: 13px;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+}
+
+.search-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-group svg {
+    position: absolute;
+    left: 12px;
+    color: #64748b;
+}
+
+.modern-input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #141f33;
+    color: #f1f5f9;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.modern-input:focus {
+    border-color: #fca311;
+    background: #0f172a;
+}
+
+/* --- Map Area --- */
+.replay-map-container {
+    flex: 1;
+    position: relative;
+    background: #070d1a;
+}
+
+.replay-map {
+    width: 100%;
+    height: 100%;
+}
+
+/* Layer Control Panel */
+.layer-control-wrapper {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.layer-toggle-btn {
+    background: rgba(20, 20, 20, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #f1f5f9;
+    transition: all 0.2s;
+}
+
+.layer-toggle-btn:hover {
+    background: rgba(40, 40, 40, 1);
+    transform: scale(1.05);
+}
+
+.layer-toggle-btn.active {
+    background: #3b82f6; /* Blue 500 */
+    border-color: #60a5fa;
+    color: #fff;
+}
+
+.glass-panel {
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 3px solid #3b82f6;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 12px;
+    color: #e2e8f0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    width: 220px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.panel-header {
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    color: #f8fafc;
+    letter-spacing: 0.5px;
+}
+
+.panel-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 6px 0;
+}
+
+/* Custom Checkboxes */
+.custom-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    transition: color 0.2s;
+}
+.custom-checkbox-label:hover {
+    color: #fff;
+}
+
+.custom-checkbox-label input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    height: 16px;
+    width: 16px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.custom-checkbox-label:hover input ~ .checkmark {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.custom-checkbox-label input:checked ~ .checkmark {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.custom-checkbox-label input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.sub-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 24px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* --- Timeline Footer --- */
+.replay-timeline {
+    height: 80px;
+    background: #070d1a;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    padding: 0 40px;
+    gap: 30px;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+}
+
+.playback-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+    min-width: 280px;
+}
+
+.btn-play {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px; /* Rounded rectangle instead of circle */
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.btn-play:hover:not(:disabled) {
+    transform: scale(1.08);
+    background: #2563eb;
+}
+
+.btn-play:disabled {
+    background: #475569;
+    box-shadow: none;
+    cursor: not-allowed;
+    color: #94a3b8;
+}
+
+.playback-options {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.speed-select {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #f8fafc;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    outline: none;
+    width: 65px;
+    text-align: center;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23f8fafc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    padding-right: 20px;
+}
+
+.speed-select option {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 8px;
+}
+
+.speed-select:disabled {
+    opacity: 0.5;
+}
+
+/* Smooth Toggle switch */
+.smooth-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4ade80;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.smooth-toggle:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.smooth-toggle input {
+    display: none;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 28px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    transition: .3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 10px;
+    width: 10px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: .3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.smooth-toggle input:checked + .toggle-slider {
+    background-color: #4ade80;
+}
+
+.smooth-toggle input:checked + .toggle-slider:before {
+    transform: translateX(14px);
+}
+
+.timeline-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.time-bound {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.time-current {
+    color: #fca311;
+    font-size: 18px;
+    font-weight: 800;
+    text-shadow: 0 0 10px rgba(252, 163, 17, 0.3);
+}
+
+/* Modern Range Slider */
+.range-slider-container {
+    position: relative;
+    padding: 4px 0;
+}
+
+.modern-range {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+}
+
+.modern-range:focus {
+    outline: none;
+}
+
+.modern-range::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    border: none;
+}
+
+.modern-range::-webkit-slider-thumb {
+    border: 3px solid #0f172a;
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -6px;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    transition: transform 0.1s;
+}
+
+.modern-range:hover::-webkit-slider-thumb {
+    transform: scale(1.15);
+}
+
+.modern-range:disabled::-webkit-slider-thumb {
+    background: #475569;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* --- Map Data Blocks --- */
+.radar-data-block {
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 10px;
+    line-height: 1.1;
+    white-space: nowrap;
+    width: max-content;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+    color: #ddd;
+    pointer-events: none;
+}
+
+.transparent-tooltip.leaflet-tooltip {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+    opacity: 1 !important;
+}
+.transparent-tooltip.leaflet-tooltip::before {
+    display: none;
+}

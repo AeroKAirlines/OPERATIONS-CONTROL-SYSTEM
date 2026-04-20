@@ -1,0 +1,195 @@
+/* ==========================================================================
+   CJJ RAMP MAP DASHBOARD STYLES 
+   ========================================================================== */
+.ramp-dashboard {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    padding: 25px 15px 15px 15px; /* 불필요한 위아래 여백 과감히 쳐냄 */
+    box-sizing: border-box;
+    position: relative;
+}
+
+.btn-toggle-stands {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-muted);
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    border-radius: 4px;
+    z-index: 50;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+.btn-toggle-stands:hover { background: rgba(255, 255, 255, 0.1); color: #fff; border-color: #fff; }
+
+.ramp-runways {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 5px 0 15px 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.runway-line { display: flex; align-items: center; justify-content: space-between; }
+.runway-designator { color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: 1.5px; width: 30px; opacity: 0.7; }
+.runway-designator.text-right { text-align: right; }
+.runway-track { flex: 1; height: 4px; background: rgba(20, 42, 89, 0.5); margin: 0 15px; border-radius: 2px; }
+
+.ramp-apron {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 6px; 
+    padding-top: 15px; /* 공간 확보 */
+    padding-bottom: 20px; /* 라벨 겹침 방지 */
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scroll-behavior: smooth;
+}
+.ramp-apron::-webkit-scrollbar { height: 8px; }
+.ramp-apron::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
+.ramp-apron::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+.ramp-apron::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+.stand {
+    /* 🌟 화면에 딱 11개가 구겨져 들어가도록! (최소 너비를 없애서 스크롤 안 생기게 함) */
+    flex: 1 1 0; 
+    min-width: 0; 
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    position: relative;
+    transition: opacity 0.3s ease; 
+}
+.stand-hidden { display: none !important; }
+
+.aircraft-wrapper {
+    position: absolute;
+    bottom: calc(55% + 15px); 
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(-30px);
+    transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 50;
+    pointer-events: none;
+}
+.aircraft-icon {
+    width: 72px; 
+    height: 72px;
+    transform: rotate(180deg);
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.6));
+}
+
+.stand-box {
+    width: 100%;
+    height: 70%; /* 🌟 박스 높이를 올려서 축소된 영역 안에서도 충분히 VDGS를 감싸도록 설정 */
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 6px; 
+    transition: all 0.3s ease;
+}
+.stand-label { position: absolute; bottom: -22px; font-size: 12px; font-weight: 800; color: rgba(255, 255, 255, 0.4); font-family: monospace; }
+.stand.bridge .stand-box { border-style: solid; border-color: rgba(255, 255, 255, 0.15); }
+
+.vdgs-tag {
+    background: #040812;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-top: 3px solid #333;
+    border-radius: 4px;
+    width: 96%; 
+    height: 90px; /* 🌟 FHD 기준 120px -> 90px 로 축소해서 박스 안 터지게 */
+    padding: 8px 4px; /* 🌟 패딩 줄임 */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.6);
+    z-index: 10;
+}
+
+.vdgs-header { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.vdgs-flt { font-size: 15px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5px; } /* 줄임 */
+.vdgs-reg { font-size: 11px; font-weight: 700; opacity: 0.8; }
+
+.vdgs-times { 
+    display: flex; 
+    justify-content: space-between; 
+    width: 100%; 
+    gap: 2px; 
+}
+.vdgs-time-block { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: flex-start; 
+    width: 48%; 
+}
+.vdgs-time-block.right { 
+    align-items: flex-end; 
+}
+.vdgs-time-lbl { 
+    font-size: 10px; 
+    font-weight: 800; 
+    opacity: 0.7; 
+    margin-bottom: 2px; 
+}
+.vdgs-time-val { 
+    font-size: 11px; 
+    font-weight: bold; 
+    letter-spacing: 0; 
+    white-space: nowrap;
+}
+
+.status-eok .stand-box { background: linear-gradient(to top, rgba(252, 163, 17, 0.1) 0%, transparent 100%); border-color: rgba(252, 163, 17, 0.3); border-style: solid; }
+.status-eok .vdgs-tag { border-top-color: var(--ak-yellow); }
+.status-eok .vdgs-flt { color: #fff; }
+.status-eok .vdgs-reg { color: var(--text-muted); }
+.status-eok .vdgs-time-val { color: var(--ak-yellow); text-shadow: 0 0 4px rgba(252,163,17,0.5); }
+.status-eok .vdgs-time-lbl { color: var(--ak-yellow); }
+.status-eok .aircraft-wrapper { opacity: 1; transform: translateY(0); color: var(--ak-yellow); }
+
+.status-oal .stand-box { background: linear-gradient(to top, rgba(96, 165, 250, 0.1) 0%, transparent 100%); border-color: rgba(96, 165, 250, 0.3); border-style: solid; }
+.status-oal .vdgs-tag { border-top-color: #60a5fa; }
+.status-oal .vdgs-flt { color: #fff; }
+.status-oal .vdgs-reg { color: var(--text-muted); }
+.status-oal .vdgs-time-val { color: #60a5fa; text-shadow: 0 0 4px rgba(96,165,250,0.5); }
+.status-oal .vdgs-time-lbl { color: #60a5fa; }
+.status-oal .aircraft-wrapper { opacity: 1; transform: translateY(0); color: #60a5fa; }
+
+.status-empty .stand-box { background: transparent; }
+.status-empty .vdgs-tag { border-top-color: rgba(255, 255, 255, 0.05); box-shadow: none; background: rgba(4, 8, 18, 0.4); }
+.status-empty .vdgs-flt { color: rgba(255, 255, 255, 0.25); }
+.status-empty .vdgs-reg { color: rgba(255, 255, 255, 0.15); }
+.status-empty .vdgs-time-val { color: rgba(255, 255, 255, 0.25); }
+.status-empty .vdgs-time-lbl { color: rgba(255, 255, 255, 0.15); }
+.status-empty .aircraft-wrapper { opacity: 0; }
+
+/* 🌟 QHD(1921px 이상) 대응 주기장 램프 블록 스케일업 (하지만 화면을 찢지 않도록 제한) */
+@media (min-width: 1921px) {
+    .vdgs-tag { height: 130px; padding: 12px 6px; border-top-width: 4px; }
+    .vdgs-flt { font-size: 18px; }
+    .vdgs-reg { font-size: 13px; margin-top: 2px; }
+    .vdgs-time-lbl { font-size: 12px; margin-bottom: 2px; }
+    .vdgs-time-val { font-size: 13px; }
+    .aircraft-icon { width: 80px; height: 80px; }
+    .stand-label { font-size: 14px; bottom: -24px; }
+    .runway-designator { font-size: 12px; width: 40px; }
+    .btn-toggle-stands { font-size: 13px; padding: 5px 12px; }
+}

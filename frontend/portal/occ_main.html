@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Aero_K Operations Control Center</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/portal_static/css/portal_style.css">
+    <link rel="stylesheet" href="/portal_static/css/operation_dashboard.css">
+    <link rel="stylesheet" href="/portal_static/css/dashboard_map.css">
+    <link rel="stylesheet" href="/portal_static/css/dashboard_schedule.css">
+    <!-- 🌟 추가된 FIDS 스타일 -->
+    <link rel="stylesheet" href="/portal_static/css/dashboard_fids.css">
+    <link rel="stylesheet" href="/portal_static/css/dashboard_ofp.css">
+    
+    <!-- Google Fonts for clean and beautiful typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 🌟 대시보드 전체 화면 스크롤 완전 차단 */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        body, * {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif !important;
+        }
+        .ops-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            flex-shrink: 0; /* 🌟 헤더 영역이 찌그러지지 않게 크기 고정 */
+        }
+        .logo-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-title h1 {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        .logo-title .occ-text {
+            color: #fca311;
+        }
+        .logo-title .dashboard-text {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .header-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .modern-btn {
+            background-color: #142a59; /* Blue like Ramp app */
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .modern-btn:hover {
+            background-color: #1e3b7a;
+            transform: translateY(-1px);
+        }
+        .modern-btn.secondary {
+            background-color: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: none;
+        }
+        .modern-btn.secondary:hover {
+            background-color: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.4);
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #bac5d6;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .user-info span {
+            color: #fff;
+            font-weight: 600;
+        }
+        .app-links {
+            display: flex;
+            gap: 10px;
+            margin-right: 15px;
+            padding-right: 15px;
+            border-right: 1px solid rgba(255,255,255,0.15);
+        }
+        .settings-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 15px;
+            padding-right: 15px;
+            border-right: 1px solid rgba(255,255,255,0.15);
+        }
+        .segmented-control {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 6px;
+            padding: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .seg-btn {
+            background: transparent;
+            color: #8b9bb4;
+            border: none;
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+        .seg-btn:hover:not(.active) {
+            color: #fff;
+        }
+        .seg-btn.mode-active {
+            background: #4ade80;
+            color: #070d1a;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .seg-btn.time-active {
+            background: #fca311;
+            color: #070d1a;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .bottom-bar { display: none; } /* Hide old bottom bar */
+
+        /* 🌟 Radar Data Block (Draggable Label) Styles */
+        .radar-data-block {
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 10px;
+            line-height: 1.1;
+            white-space: nowrap;
+            width: max-content;
+            cursor: grab;
+            box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+            pointer-events: auto; /* Allow drag */
+            color: #ddd;
+        }
+        .radar-data-block:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="ops-header">
+        <div class="logo-title">
+            <img src="/portal_static/img/AeroK.svg" alt="Aero K" class="logo-img" style="height: 24px; filter: brightness(0) invert(1); opacity: 0.95;">
+            <h1><span class="occ-text"></span> <span class="dashboard-text">OPERATIONS CONTROL SYSTEM</span></h1>
+        </div>
+
+        <div class="header-center clock-container">
+            <div class="clock" style="text-align: center;">
+                <div class="clock-label">KST</div>
+                <div class="clock-time" id="clock-kst" style="color: #fff; font-size: 22px;">00:00</div>
+            </div>
+            <div class="clock" style="text-align: center;">
+                <div class="clock-label">UTC</div>
+                <div class="clock-time zulu" id="clock-utc" style="color: #fca311; font-size: 22px;">00:00Z</div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <!-- 🌟 Dashboard Settings (Mode & Timezone) -->
+            <div class="settings-group">
+                <div class="segmented-control mode-control">
+                    <button id="btnDashMode" class="seg-btn mode-active">DASHBOARD</button>
+                    <button id="btnExploreMode" class="seg-btn">EXPLORE</button>
+                </div>
+                <div class="segmented-control time-control">
+                    <button id="btnTimeZulu" class="seg-btn time-active">UTC</button>
+                    <button id="btnTimeKst" class="seg-btn">KST</button>
+                </div>
+            </div>
+
+            <!-- 🌟 External App Links -->
+            <div class="app-links">
+                <a href="/replay" class="modern-btn" style="background-color: #fca311; color: #070d1a;">MAP REPLAY</a>
+                <a href="/ramp/ui" target="_blank" class="modern-btn">RAMP CONTROL</a>
+                <a href="#" class="modern-btn secondary" style="opacity: 0.5; cursor: not-allowed;" title="Watch App - Coming Soon">FLIGHT WATCH</a>
+            </div>
+            
+            <div class="user-info">
+                <span id="portalUserName">User</span>
+                <button id="btnPortalLogout" class="modern-btn secondary" style="padding: 4px 10px; font-size: 11px;">LOGOUT</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="ops-dashboard-main">
+        <!-- Left Panel: Live Map (World Map) -->
+        <section class="panel-left" style="position: relative;">
+            <!-- 🌟 지도 컨트롤 패널 (Layer 스타일) -->
+            <div id="map-layer-control" class="layer-control-wrapper">
+                
+                <!-- Toggle Button -->
+                <button id="btn-layer-toggle" class="layer-toggle-btn" title="Map Layers & Filters">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                    </svg>
+                </button>
+
+                <!-- Expanded Panel -->
+                <div id="map-controls" class="glass-panel" style="display: none;">
+                    <div class="panel-header">LAYERS & FILTERS</div>
+                    
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" id="toggle-fix-master"> 
+                        <span class="checkmark"></span>
+                        <span class="label-text">FIX DISPLAY</span>
+                    </label>
+                    <div class="sub-options">
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-fix-name" checked> <span class="checkmark"></span><span class="label-text">NAME</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-fix-efob" checked> <span class="checkmark"></span><span class="label-text">EFOB</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-fix-time" checked> <span class="checkmark"></span><span class="label-text">TIME</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-fix-alt" checked> <span class="checkmark"></span><span class="label-text">ALTITUDE (FL)</span></label>
+                    </div>
+
+                    <div class="panel-divider"></div>
+
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" id="toggle-acars-master"> 
+                        <span class="checkmark"></span>
+                        <span class="label-text">ACARS DISPLAY</span>
+                    </label>
+                    <div class="sub-options">
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-acars-fob" checked> <span class="checkmark"></span><span class="label-text">FOB</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-acars-time" checked> <span class="checkmark"></span><span class="label-text">TIME</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-acars-alt" checked> <span class="checkmark"></span><span class="label-text">ALT</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-acars-speed" checked> <span class="checkmark"></span><span class="label-text">SPEED</span></label>
+                    </div>
+                    
+                    <div class="panel-divider"></div>
+
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" id="toggle-ac-tooltip" checked> 
+                        <span class="checkmark"></span>
+                        <span class="label-text">DATA BLOCK ALWAYS ON</span>
+                    </label>
+                    
+                    <div class="panel-divider"></div>
+                    <div class="panel-header" style="border-bottom: none; padding-bottom: 0;">FLIGHTS</div>
+                    <div id="flight-toggles-container" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                        <!-- 항공편별 토글 버튼들이 여기에 동적으로 추가됨 -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="map" class="map-container" style="flex: 1; height: 100%; width: 100%;"></div>
+        </section>
+
+        <!-- Right Panel: CJJ MAP & FIDS & Schedule -->
+        <section class="panel-right">
+        
+            <!-- 🌟 우측 상단 패널 (FIDS 전용 렌더링) -->
+            <div class="right-top" style="position: relative; overflow: hidden;">
+        
+                <!-- 🌟 실제 공항 FIDS 디자인 영역 -->
+                <div id="fids-container"
+                    style="display: flex; width: 100%; height: 100%; background: #0b1a2e; padding: 10px 15px; box-sizing: border-box; flex-direction: column;">
+        
+                    <!-- FIDS 헤더 영역 -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">
+                        <h2 style="color: #fff; font-size: 16px; margin: 0; font-weight: 800; letter-spacing: 1px;">청주공항 FIDS
+                        </h2>
+                        <div
+                            style="color: #4ade80; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 6px;">
+                            <div class="live-dot"></div> LIVE DATA
+                        </div>
+                    </div>
+        
+                    <!-- 🌟 좌우(도착/출발) 전광판 컨테이너 -->
+                    <div class="fids-board-container">
+                        <!-- [좌측] ARRIVALS BOARD -->
+                        <div class="fids-board">
+                            <div class="board-title arr-title">
+                                <span class="ko">도착</span> | <span class="en">Arrivals</span>
+                            </div>
+                            <div class="board-header">
+                                <div>FLIGHT</div>
+                                <div>TIME</div>
+                                <div>FROM</div>
+                                <div style="text-align:center;">SPOT</div>
+                                <div style="text-align:center;">NEW</div>
+                                <div style="text-align:right;">STAT</div>
+                            </div>
+                            <div class="board-content" id="list-arrivals">
+                                <div class="loading-msg">데이터를 불러오는 중...</div>
+                            </div>
+                        </div>
+        
+                        <!-- [우측] DEPARTURES BOARD -->
+                        <div class="fids-board">
+                            <div class="board-title dep-title">
+                                <span class="ko">출발</span> | <span class="en">Departures</span>
+                            </div>
+                            <div class="board-header">
+                                <div>FLIGHT</div>
+                                <div>TIME</div>
+                                <div>TO</div>
+                                <div style="text-align:center;">SPOT</div>
+                                <div style="text-align:center;">NEW</div>
+                                <div style="text-align:right;">STAT</div>
+                            </div>
+                            <div class="board-content" id="list-departures">
+                                <div class="loading-msg">데이터를 불러오는 중...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- fids-container 닫힘 -->
+            </div> <!-- right-top 닫힘 -->
+        
+            <!-- 🌟 우측 하단 패널 (스케줄) -->
+            <div class="right-bottom schedule-panel">
+                <div class="table-container">
+                    <table class="schedule-table">
+                        <thead>
+                            <tr>
+                                <th>DATE</th>
+                                <th>FLT</th>
+                                <th>REG</th>
+                                <th>DEP</th>
+                                <th>ARR</th>
+                                <th>STD</th>
+                                <th>ETD</th>
+                                <th>ATD</th>
+                                <th>STA</th>
+                                <th>ETA</th>
+                                <th>ATA</th>
+                                <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-body">
+                            <!-- Rows will be dynamically injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div> <!-- right-bottom 닫힘 -->
+        </section> <!-- panel-right 닫힘 -->
+    </main>
+
+    <!-- OFP Modal -->
+    <div id="ofp-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-flight-num">FLIGHT</h3>
+                <button class="close-btn" id="btn-close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-ofp-details">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/portal_static/js/config.js"></script>
+    <script src="/portal_static/js/portal_main.js"></script>
+    <!-- 🌟 추가된 FIDS 스크립트 -->
+    <script src="/portal_static/js/dashboard_fids.js"></script>
+    <script src="/portal_static/js/dashboard_ofp.js"></script>
+    
+    <script src="/portal_static/js/dashboard_map.js"></script>
+    <script src="/portal_static/js/dashboard_schedule.js"></script>
+    <script src="/portal_static/js/operation_dashboard.js"></script>
+</body>
+
+</html>

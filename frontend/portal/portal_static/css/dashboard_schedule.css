@@ -1,0 +1,146 @@
+/* Schedule Table & Modal Styles */
+.schedule-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: transparent;
+}
+
+.schedule-header {
+    padding: 12px 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.schedule-header h2 {
+    font-size: 14px;
+    color: var(--text-main);
+    font-weight: 700;
+    margin: 0;
+}
+
+.table-container {
+    flex: 1;
+    overflow-y: auto;
+    background: #070d1a;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+/* 🌟 스크롤 기능은 작동하지만 시각적으로 스크롤바는 숨김 */
+.table-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.export-btn {
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    border-radius: 0;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.export-btn:hover {
+    background: var(--ak-yellow);
+    color: var(--bg-dark);
+    border-color: var(--ak-yellow);
+}
+
+.schedule-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+}
+
+.schedule-table th {
+    position: sticky;
+    top: 0;
+    background: #070d1a; 
+    color: #8b9bb4; 
+    font-size: 12px; /* 🌟 헤더 글씨 살짝 축소하여 DATE 열 공간 확보 */
+    font-weight: 800;
+    text-align: left;
+    padding: 10px 10px; /* 좌우 여백 축소 */
+    border-bottom: 2px solid transparent; /* 공간 유지 */
+    box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.2);
+    z-index: 10;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.schedule-table td {
+    padding: 10px 10px; /* 좌우 여백을 줄여서 DATE 컬럼 공간 확보 */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 13px; 
+    font-family: monospace; 
+    font-weight: 600;
+}
+
+.schedule-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02); 
+}
+
+.schedule-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.08); 
+}
+
+.schedule-table td strong {
+    color: #fff;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.status-badge {
+    padding: 6px 0px;
+    border-radius: 6px; 
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 80px; /* 글씨 길이에 따라 달라지지 않게 고정 너비 설정 */
+    text-align: center;
+    letter-spacing: 0.5px;
+    box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+    border: none;
+}
+
+.status-SCHED { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.status-DEPARTED { background: rgba(163, 230, 53, 0.15); color: #a3e635; }
+.status-AIRBORNE { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.status-LANDED { background: rgba(234, 179, 8, 0.15); color: #facc15; }
+.status-ARRIVED { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+.status-DELAYED { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+
+
+
+/* 🌟 QHD(1921px 이상) 대응 스케줄 표 스케일업 */
+@media (min-width: 1921px) {
+    .schedule-table th {
+        font-size: 15px; 
+        padding: 12px 15px; /* 공간 확보 */
+    }
+    
+    .schedule-table td {
+        padding: 12px 15px; /* 공간 확보 */
+        font-size: 15px; 
+    }
+    
+    .schedule-table td strong {
+        font-size: 18px; 
+    }
+    
+    .status-badge {
+        padding: 6px 0px;
+        font-size: 14px;
+        width: 90px;
+    }
+}

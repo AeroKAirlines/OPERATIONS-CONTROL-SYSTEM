@@ -1,0 +1,13 @@
+services:
+  occ_web:
+    build: .
+    container_name: occ_container
+    restart: always
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./:/app
+      - ./db:/app/db  # DB 폴더 동기화
+    environment:
+      - SECRET_KEY=aerok_super_secret_key_2026
+      - TZ=Asia/Seoul

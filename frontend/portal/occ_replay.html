@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Aero_K Map Replay</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/portal_static/css/portal_style.css">
+    <link rel="stylesheet" href="/portal_static/css/dashboard_map.css">
+    <link rel="stylesheet" href="/portal_static/css/replay/replay.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="ops-header">
+        <a href="/" class="logo-title" style="text-decoration: none; cursor: pointer;">
+            <img src="/portal_static/img/AeroK.svg" alt="Aero K" class="logo-img">
+            <h1><span class="occ-text">REPLAY</span> MAP</h1>
+        </a>
+        <div class="header-right">
+            <a href="/" class="modern-btn secondary">BACK TO LIVE</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="replay-main">
+        <!-- Search & Info Sidebar -->
+        <aside class="replay-sidebar">
+            <div class="search-box">
+                <h3>Select Flight</h3>
+                <div class="search-inputs">
+                    <div class="input-group">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <input type="date" id="search-date" class="modern-input">
+                    </div>
+                    <div class="input-group">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="search-flight" placeholder="Filter Flight No... (e.g. 123)" class="modern-input">
+                    </div>
+                </div>
+            </div>
+            
+            <div id="search-results" class="flight-results-container">
+                <!-- Results go here -->
+            </div>
+            
+            <!-- Flight info panel moved to map overlay -->
+        </aside>
+
+        <!-- Map Container -->
+        <section class="replay-map-container">
+            <div id="flight-info-panel" class="flight-info-card" style="display: none; position: absolute; top: 20px; left: 20px; z-index: 1000; width: 320px; margin-top: 0;">
+                <h3 id="info-flight-num">EOK---</h3>
+                <div class="flight-info-list">
+                    <div class="info-row">
+                        <span class="info-label">ROUTE</span>
+                        <div class="info-val-group">
+                            <span class="info-val highlight-blue" id="info-dep">---</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" style="margin: 0 6px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            <span class="info-val highlight-blue" id="info-arr">---</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">STD / STA</span>
+                        <div class="info-val-group">
+                            <span class="info-val highlight-white" id="info-std">---</span>
+                            <span style="color:#475569; margin: 0 6px;">/</span>
+                            <span class="info-val highlight-white" id="info-sta">---</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">ATD / ATA</span>
+                        <div class="info-val-group">
+                            <span class="info-val highlight-yellow" id="info-atd">---</span>
+                            <span style="color:#475569; margin: 0 6px;">/</span>
+                            <span class="info-val highlight-yellow" id="info-ata">---</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">AIRCRAFT</span>
+                        <span class="info-val highlight-white" id="info-reg">---</span>
+                    </div>
+                </div>
+                
+                <!-- 🌟 OOOI FOB Data Section -->
+                <div class="fob-log-section">
+                    <div class="fob-title">FUEL LOG (FOB)</div>
+                    <div class="flight-info-list">
+                        <div class="info-row">
+                            <span class="info-label">OUT / OFF</span>
+                            <div class="info-val-group">
+                                <span class="info-val highlight-white" id="info-out-fob">---</span>
+                                <span style="color:#475569; margin: 0 6px;">/</span>
+                                <span class="info-val highlight-white" id="info-off-fob">---</span>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">ON / IN</span>
+                            <div class="info-val-group">
+                                <span class="info-val highlight-white" id="info-on-fob">---</span>
+                                <span style="color:#475569; margin: 0 6px;">/</span>
+                                <span class="info-val highlight-white" id="info-in-fob">---</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="map-layer-control" class="layer-control-wrapper">
+                <button id="btn-layer-toggle" class="layer-toggle-btn" title="Map Layers & Filters">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                    </svg>
+                </button>
+
+                <div id="map-controls" class="glass-panel" style="display: none;">
+                    <div class="panel-header">LAYERS & FILTERS</div>
+                    
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" id="toggle-fix-master"> 
+                        <span class="checkmark"></span>
+                        <span class="label-text">FIX DISPLAY</span>
+                    </label>
+                    <div class="sub-options">
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-fix-name" checked> <span class="checkmark"></span><span class="label-text">NAME</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-fix-efob" checked> <span class="checkmark"></span><span class="label-text">EFOB</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-fix-time" checked> <span class="checkmark"></span><span class="label-text">TIME</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-fix-alt" checked> <span class="checkmark"></span><span class="label-text">ALTITUDE (FL)</span></label>
+                    </div>
+
+                    <div class="panel-divider"></div>
+
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" id="toggle-acars-master" checked> 
+                        <span class="checkmark"></span>
+                        <span class="label-text">ACARS DISPLAY</span>
+                    </label>
+                    <div class="sub-options">
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-acars-fob" checked> <span class="checkmark"></span><span class="label-text">FOB</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-acars-time" checked> <span class="checkmark"></span><span class="label-text">TIME</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-acars-alt" checked> <span class="checkmark"></span><span class="label-text">ALT</span></label>
+                        <label class="custom-checkbox-label"><input type="checkbox" id="toggle-acars-speed" checked> <span class="checkmark"></span><span class="label-text">SPEED</span></label>
+                    </div>
+                    
+                    <div class="panel-divider"></div>
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" id="toggle-ac-tooltip" checked> 
+                        <span class="checkmark"></span>
+                        <span class="label-text">DATA BLOCK ALWAYS ON</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="map" class="replay-map"></div>
+        </section>
+    </main>
+
+    <!-- Timeline / Playback Slider -->
+    <footer class="replay-timeline">
+        <div class="playback-controls">
+            <button id="btn-play-pause" class="btn-play" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="playback-options">
+                <select id="playback-speed" class="speed-select" disabled>
+                    <option value="1">1x</option>
+                    <option value="5">5x</option>
+                    <option value="10">10x</option>
+                    <option value="30">30x</option>
+                    <option value="60">60x</option>
+                </select>
+                <label class="smooth-toggle" title="Smooth 1-minute interpolation">
+                    <input type="checkbox" id="toggle-interpolation"> 
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">SMOOTH</span>
+                </label>
+            </div>
+        </div>
+        </div>
+        
+        <div class="timeline-wrapper">
+            <div class="timeline-labels">
+                <span id="time-start" class="time-bound">OUT: --:--</span>
+                <span id="time-current" class="time-current">--:--:--</span>
+                <span id="time-end" class="time-bound">IN: --:--</span>
+            </div>
+            <div class="range-slider-container">
+                <input type="range" id="timeline-slider" min="0" max="100" value="100" class="modern-range" disabled>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/portal_static/js/config.js"></script>
+    <script src="/portal_static/js/replay/replay_main.js"></script>
+    <script src="/portal_static/js/replay/replay_map.js"></script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+/* Modal & OFP Styles */
+#ofp-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+#ofp-modal.active {
+    display: flex;
+}
+
+#ofp-modal .modal-content {
+    background: var(--bg-dark);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; 
+    width: 900px;
+    max-width: 95vw;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+#ofp-modal .modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#ofp-modal .modal-header h3 {
+    color: var(--ak-yellow);
+    font-size: 18px;
+    margin: 0;
+}
+
+#ofp-modal .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+#ofp-modal .modal-body {
+    padding: 30px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Modern OFP Layout - Scoped */
+
+#ofp-modal .ofp-section-title {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+#ofp-modal .ofp-card {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 25px;
+}
+
+#ofp-modal .ofp-grid-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+/* Weights & Fuel Section */
+#ofp-modal .ofp-data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-family: 'Consolas', 'Courier New', monospace;
+    position: relative;
+}
+
+#ofp-modal .ofp-data-row::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.05);
+}
+#ofp-modal .ofp-data-row:last-child::after {
+    display: none;
+}
+
+#ofp-modal .ofp-lbl { 
+    color: #64748b; 
+    font-size: 12px; 
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#ofp-modal .ofp-val-group {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    text-align: right;
+}
+
+#ofp-modal .ofp-val { 
+    color: #cbd5e1; 
+    font-size: 14px; 
+    font-weight: normal; 
+}
+
+#ofp-modal .ofp-val.bold { 
+    color: #f8fafc; 
+    font-weight: 700; 
+}
+
+#ofp-modal .ofp-val.highlight { 
+    color: var(--ak-yellow); 
+    font-weight: 700; 
+}
+
+#ofp-modal .ofp-unit { 
+    color: #475569; 
+    font-size: 11px; 
+    font-weight: normal;
+}
+
+/* Progress bar for weights */
+#ofp-modal .ofp-progress-bar-container {
+    width: 60px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-left: 10px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#ofp-modal .ofp-progress-bar-fill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 2px;
+}
+#ofp-modal .ofp-progress-bar-fill.warning { background: var(--ak-yellow); }
+#ofp-modal .ofp-progress-bar-fill.danger { background: #ef4444; }
+
+/* Side-by-side Weight Comparison */
+#ofp-modal .weight-compare-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 10px;
+    margin: 0 -10px;
+    position: relative;
+    font-family: 'Consolas', 'Courier New', monospace;
+    background: rgba(255,255,255,0.015);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(255,255,255,0.03);
+}
+#ofp-modal .weight-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 38%;
+}
+#ofp-modal .weight-item.right {
+    align-items: flex-end;
+    text-align: right;
+}
+#ofp-modal .weight-item .ofp-lbl {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+}
+#ofp-modal .weight-item .ofp-val {
+    font-size: 15px;
+    color: #cbd5e1;
+}
+#ofp-modal .weight-item .ofp-val.bold {
+    color: #f8fafc;
+    font-weight: 700;
+}
+#ofp-modal .weight-item .ofp-val.highlight {
+    color: var(--ak-yellow);
+    font-weight: 700;
+}
+#ofp-modal .weight-bar-wrapper {
+    flex: 1;
+    padding: 0 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+#ofp-modal .weight-margin-text {
+    font-size: 10px;
+    color: #475569;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+}
+#ofp-modal .weight-margin-text.danger {
+    color: #ef4444;
+}
+#ofp-modal .weight-bar-wrapper .ofp-progress-bar-container {
+    width: 100%;
+    max-width: 100px;
+    height: 6px;
+    margin: 0;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+/* Indentation for Fuel */
+#ofp-modal .fuel-indent {
+    padding-left: 15px;
+    position: relative;
+}
+#ofp-modal .fuel-indent::before {
+    content: '└';
+    position: absolute;
+    left: 2px;
+    color: #475569;
+    font-size: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#ofp-modal .fuel-total-row {
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin: 4px -10px;
+}
+#ofp-modal .fuel-total-row::after { display: none; }
+
+/* Flex Grid for Fuel & Crew */
+#ofp-modal .ofp-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+#ofp-modal .ofp-grid-3col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+}
