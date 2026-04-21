@@ -80,6 +80,21 @@ def parse_acars_message(body: str) -> Optional[Dict[str, Any]]:
         alt_msg_match = re.search(r'AN\s+(HL\d{4})\s+DT\s+([A-Z]{3,4})\s+([A-Z]{3,4})\s+\d{6}.*?(OUTRP|OFFRP|ONRP|INRP|POSRPT|ETA)\s+(\d{3,4})', full_text)
 
     if not msg_type_match and not alt_msg_match:
+        # Check for CFD message
+        # Example: CFD FI RF316/AN HL8563 DT BKK ICN 201952 C00A - WRN/WN26042019520029000002HYD B ELEC PUMP LO PR
+        cfd_match = re.search(r'CFD\s+FI\s+(?:RF)?0*(\d+)/AN\s+(HL\d{4})\s+DT\s+[A-Z0-9]+\s+[A-Z0-9]+\s+(\d{2})(\d{4}).*?-\s*WRN/(WN\d{20,})(.*)', full_text)
+        if cfd_match:
+            flight_num = f"EOK{int(cfd_match.group(1))}" if cfd_match.group(1).isdigit() else cfd_match.group(1)
+            return {
+                "msg_type": "CFD",
+                "flight_number": flight_num,
+                "aircraft_reg": cfd_match.group(2),
+                "report_time": f"{cfd_match.group(4)}/{cfd_match.group(3)}",
+                "fault_code": cfd_match.group(5),
+                "fault_desc": cfd_match.group(6).strip(),
+                "raw_message": full_text
+            }
+
         # 3. Try ARINC 622 POS reports
         # 정규식을 수정하여 문장 끝부분의 숫자와 문자(extra_data)까지 모두 캡처합니다.
         arinc_pos_match = re.search(r'FI\s+(?:RF)?([A-Z0-9]+)/AN\s+(HL\d{4}).*?-\s*POS(?:HL\d{4})?(\d{4})([A-Z]{4})([A-Z]{4})\d{2}[A-Z]{3}\d{2}(\d{4})\d{2}\s*T?([NS]\s*\d+\.\d{3})([EW]\d+\.\d{3})\d{6}\s+(\d+)[-\s]+(.*)', full_text)

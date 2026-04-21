@@ -46,7 +46,7 @@ def _resolve_datetime_string(time_str: str | None, ref_day_str: str, now_utc: da
         logger.error(f"Error resolving time string {time_str} with ref day {ref_day_str}: {e}")
         return None
 
-def _resolve_flight_date(day_str: str, now_utc: datetime) -> str:
+def _resolve_flight_date(day_str: str, now_utc: datetime, flight_num: str = None, db: Session = None) -> str:
     try:
         day = int(day_str)
         dt = datetime(now_utc.year, now_utc.month, day)
@@ -58,7 +58,57 @@ def _resolve_flight_date(day_str: str, now_utc: datetime) -> str:
             dt = dt + timedelta(days=20)
             dt = dt.replace(day=day)
             
-        return dt.strftime("%Y-%m-%d")
+        calculated_date = dt.strftime("%Y-%m-%d")
+        
+        # [Fallback Check] 스케줄과 OFP 우선 조회 로직 추가
+        if flight_num and db:
+            # 1. 24시간 범위 내에 이미 등록된 스케줄이 있는지 확인 (실제 지연된 날짜가 아닌 스케줄 날짜 기준)
+            start_date = (dt - timedelta(days=1)).strftime("%Y-%m-%d")
+            end_date = (dt + timedelta(days=1)).strftime("%Y-%m-%d")
+            
+            candidates = db.query(MasterFlight).filter(
+                MasterFlight.flight_number == flight_num,
+                MasterFlight.flight_date_z >= start_date,
+                MasterFlight.flight_date_z <= end_date
+            ).all()
+            
+            if candidates:
+                valid_candidates = []
+                for mf in candidates:
+                    ref_time_str = getattr(mf, "std_z", None) or getattr(mf, "out_time_z", None) or getattr(mf, "off_time_z", None)
+                    if ref_time_str and len(ref_time_str) >= 4:
+                        try:
+                            mf_start_dt = datetime.strptime(f"{mf.flight_date_z} {ref_time_str[:4]}", "%Y-%m-%d %H%M")
+                        except:
+                            mf_start_dt = datetime.strptime(f"{mf.flight_date_z} 2359", "%Y-%m-%d %H%M")
+                    else:
+                        mf_start_dt = datetime.strptime(f"{mf.flight_date_z} 2359", "%Y-%m-%d %H%M")
+                    
+                    diff_seconds = (dt - mf_start_dt).total_seconds()
+                    # -2 hours to +24 hours
+                    if -7200 <= diff_seconds <= 86400:
+                        valid_candidates.append((mf, abs(diff_seconds)))
+                
+                if valid_candidates:
+                    valid_candidates.sort(key=lambda x: x[1])
+                    return valid_candidates[0][0].flight_date_z
+
+            # 2. 스케줄이 아예 없다면 OFP 내역 조회
+            try:
+                from backend.data_sources.ofp.models import Ofp
+                ofp_candidate = db.query(Ofp).filter(
+                    Ofp.flight_id.like(f"%_{flight_num}")
+                ).order_by(Ofp.created_at.desc()).first()
+                
+                if ofp_candidate and ofp_candidate.flight_id:
+                    ofp_date = ofp_candidate.flight_id.split("_")[0]
+                    ofp_dt = datetime.strptime(ofp_date, "%Y-%m-%d")
+                    if abs((dt - ofp_dt).total_seconds()) < 86400:
+                        return ofp_date
+            except Exception:
+                pass
+                
+        return calculated_date
     except:
         return now_utc.strftime("%Y-%m-%d")
 
@@ -81,7 +131,7 @@ def test_fetch_mvt_emails(limit: int = 10, db: Session = Depends(get_db)):
             day_str = item.get("flight_date", str(now_utc.day))
             reg = item.get("aircraft_reg")
             
-            flight_date_z = _resolve_flight_date(day_str, now_utc)
+            flight_date_z = _resolve_flight_date(day_str, now_utc, flight_num, db)
             master_id = f"{flight_date_z}_{flight_num}"
             
             # Times
@@ -231,7 +281,7 @@ def run_mvt_fetch_job(close_db: bool = True):
             flight_num = item.get("flight_number")
             day_str = item.get("flight_date", str(now_utc.day))
             reg = item.get("aircraft_reg")
-            flight_date_z = _resolve_flight_date(day_str, now_utc)
+            flight_date_z = _resolve_flight_date(day_str, now_utc, flight_num, db)
             master_id = f"{flight_date_z}_{flight_num}"
             
             # Save MVT record

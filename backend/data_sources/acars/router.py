@@ -4,7 +4,7 @@ from typing import Any
 import logging
 from backend.core.database import get_db, sync_lock
 from backend.data_sources.acars.fetcher import fetch_acars_emails
-from backend.data_sources.acars.models import PositionReport, Movement
+from backend.data_sources.acars.models import PositionReport, Movement, CfdMessage
 from backend.data_sources.common.models import MasterFlight
 import json
 import re
@@ -129,6 +129,22 @@ def _resolve_master_flight_date(db: Session, flight_num: str, report_dt: datetim
                 valid_candidates.append((mf, abs(diff_seconds)))
 
         if not valid_candidates:
+            # 스케줄이 아직 없더라도, ACARS보다 먼저 수신되는 OFP(비행계획서)가 있다면 그 날짜를 따라감.
+            try:
+                from backend.data_sources.ofp.models import Ofp
+                ofp_candidate = db.query(Ofp).filter(
+                    Ofp.flight_id.like(f"%_{flight_num}")
+                ).order_by(Ofp.created_at.desc()).first()
+                
+                if ofp_candidate and ofp_candidate.flight_id:
+                    ofp_date = ofp_candidate.flight_id.split("_")[0]
+                    # OFP 날짜와 수신 시간의 차이가 24시간 이내일 때만 신뢰
+                    ofp_dt = datetime.strptime(ofp_date, "%Y-%m-%d")
+                    if abs((report_dt - ofp_dt).total_seconds()) < 86400:
+                        return ofp_date
+            except Exception:
+                pass
+                
             return report_date_str
             
         # 가장 가까운 출발 시간을 가진 비행편 순으로 정렬 (12:00 기준이 아닌 실제 출발시간 기준)
@@ -329,6 +345,39 @@ def run_acars_fetch_job(limit: int = 15, db: Any = None, since_days: int = 0):
                             if getattr(master_record, "status") in[None, "SCHED", "DEPARTED"]:
                                 master_record.status = "AIRBORNE"
                 
+                elif msg_type == "CFD":
+                    master_id = f"{flight_date}_{flight_num}"
+                    
+                    master_record = db.query(MasterFlight).filter(MasterFlight.id == master_id).first()
+                    if not master_record:
+                        master_record = MasterFlight(
+                            id=master_id,
+                            flight_date_z=flight_date,
+                            flight_number=flight_num,
+                            aircraft_reg=reg
+                        )
+                        db.add(master_record)
+                        db.flush()
+                        
+                    existing_cfd = db.query(CfdMessage).filter(
+                        CfdMessage.flight_id == master_id,
+                        CfdMessage.report_time == report_time,
+                        CfdMessage.fault_code == item.get("fault_code")
+                    ).first()
+                    
+                    if not existing_cfd:
+                        cfd_record = CfdMessage(
+                            flight_id=master_id,
+                            flight_number=flight_num,
+                            aircraft_reg=reg,
+                            report_time=report_time,
+                            fault_code=item.get("fault_code"),
+                            fault_desc=item.get("fault_desc"),
+                            raw_message=item.get("raw_message")
+                        )
+                        db.add(cfd_record)
+                        db.flush()
+
                 elif msg_type in ["OUTRP", "OFFRP", "ONRP", "INRP", "ETA"]:
                     oooi_record = db.query(Movement).filter(
                         Movement.flight_number == flight_num,
@@ -521,6 +570,39 @@ def test_fetch_acars_emails(limit: int = 10, db: Session = Depends(get_db)):
                     if getattr(master_record, "status") in [None, "SCHED", "DEPARTED"]:
                         master_record.status = "AIRBORNE"
         
+        elif msg_type == "CFD":
+            master_id = f"{flight_date}_{flight_num}"
+            
+            master_record = db.query(MasterFlight).filter(MasterFlight.id == master_id).first()
+            if not master_record:
+                master_record = MasterFlight(
+                    id=master_id,
+                    flight_date_z=flight_date,
+                    flight_number=flight_num,
+                    aircraft_reg=reg
+                )
+                db.add(master_record)
+                db.flush()
+                
+            existing_cfd = db.query(CfdMessage).filter(
+                CfdMessage.flight_id == master_id,
+                CfdMessage.report_time == report_time,
+                CfdMessage.fault_code == item.get("fault_code")
+            ).first()
+            
+            if not existing_cfd:
+                cfd_record = CfdMessage(
+                    flight_id=master_id,
+                    flight_number=flight_num,
+                    aircraft_reg=reg,
+                    report_time=report_time,
+                    fault_code=item.get("fault_code"),
+                    fault_desc=item.get("fault_desc"),
+                    raw_message=item.get("raw_message")
+                )
+                db.add(cfd_record)
+                db.flush()
+
         elif msg_type in["OUTRP", "OFFRP", "ONRP", "INRP"]:
             oooi_record = db.query(Movement).filter(
                 Movement.flight_number == flight_num,
@@ -614,4 +696,10 @@ def get_acars_positions(db: Session = Depends(get_db)):
 @router.get("/oooi")
 def get_flight_oooi(db: Session = Depends(get_db)):
     records = db.query(Movement).order_by(Movement.id.desc()).limit(50).all()
+    return records
+
+@router.get("/cfd")
+def get_cfd_messages(db: Session = Depends(get_db)):
+    from backend.data_sources.acars.models import CfdMessage
+    records = db.query(CfdMessage).order_by(CfdMessage.id.desc()).limit(1000).all()
     return records

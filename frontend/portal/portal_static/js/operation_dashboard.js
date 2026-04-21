@@ -6,18 +6,21 @@ window.initialFidsScrollDone = false;
 
 async function syncDashboardData() {
     try {
-        const[schedRes, acarsRes, statsRes] = await Promise.all([
+        const[schedRes, acarsRes, statsRes, cfdRes] = await Promise.all([
             fetch('/api/flights/master-schedule'),
             fetch('/api/acars/positions'),
-            fetch('/api/flights/daily-stats')
+            fetch('/api/flights/daily-stats'),
+            fetch('/api/acars/cfd')
         ]);
         const flights = await schedRes.json();
         const positions = await acarsRes.json();
         const stats = await statsRes.json();
+        const cfdMessages = await cfdRes.json();
 
         currentFlights = flights; 
         window.currentFlights = flights;
         window.currentPositions = positions;
+        window.currentCfdMessages = cfdMessages;
 
         const ids =['stat-total', 'stat-airborne', 'stat-scheduled', 'stat-delayed'];
         const keys =['total', 'airborne', 'scheduled', 'delayed'];

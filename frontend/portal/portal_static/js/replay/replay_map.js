@@ -6,6 +6,7 @@ let planLineLayer;
 let actualLineLayer;
 let fixLayerGroup;
 let acarsLayerGroup;
+let cfdLayerGroup;
 let planeMarker;
 let planeLabelMarker;
 let planeLeaderLine;
@@ -22,6 +23,7 @@ let mapFilterState = {
     acarsTime: true,
     acarsAlt: true,
     acarsSpeed: true,
+    showCfd: true,
     acTooltipAlways: true
 };
 
@@ -203,6 +205,7 @@ function initReplayMap() {
 
         fixLayerGroup = L.layerGroup().addTo(replayMap);
         acarsLayerGroup = L.layerGroup().addTo(replayMap);
+        cfdLayerGroup = L.layerGroup().addTo(replayMap);
         
         setupLayerToggles();
     } else {
@@ -215,6 +218,7 @@ function initReplayMap() {
         planeLabelOffset = null;
         fixLayerGroup.clearLayers();
         acarsLayerGroup.clearLayers();
+        cfdLayerGroup.clearLayers();
     }
 }
 
@@ -242,6 +246,7 @@ function setupLayerToggles() {
     attachToggle('toggle-acars-time', 'acarsTime', renderMapElements);
     attachToggle('toggle-acars-alt', 'acarsAlt', renderMapElements);
     attachToggle('toggle-acars-speed', 'acarsSpeed', renderMapElements);
+    attachToggle('toggle-cfd-alerts', 'showCfd', renderMapElements);
     attachToggle('toggle-ac-tooltip', 'acTooltipAlways', renderMapElements);
 }
 
@@ -360,6 +365,7 @@ function renderMapElements() {
     // ACARS rendering is handled dynamically by handleTimelineChange 
     // to achieve the "Time Machine" effect.
     window.isAcarsMarkersBuilt = false; // Force rebuild on filter change
+    window.isCfdMarkersBuilt = false;
     if (typeof currentTargetTs !== 'undefined' && currentTargetTs > 0) {
         handleTimelineChange(currentTargetTs);
     }
@@ -484,7 +490,125 @@ function handleTimelineChange(targetTs) {
             acarsLayerGroup.clearLayers();
         }
 
-        // 4. Update Plane Marker (Interpolation or Exact)
+        // 4. Draw CFD Markers
+        if (!window.isCfdMarkersBuilt) {
+            cfdLayerGroup.clearLayers();
+            window.cfdMarkersArray = [];
+            
+            if (currentReplayFlight.cfd && currentReplayFlight.cfd.length > 0) {
+                // 그룹화: 동일한 "위치(Location)"를 가진 메시지끼리 공간 클러스터링
+                let groupedCfds = {};
+                
+                currentReplayFlight.cfd.forEach(cfd => {
+                    let ts = cfd.timestamp;
+                    if (ts <= 0 || ts > targetTs) return;
+                    
+                    let targetLatLng = null;
+                    let beforePt = null;
+                    let afterPt = null;
+                    let tBefore = 0;
+                    let tAfter = 0;
+                    
+                    for (let i = 0; i < currentPositions.length; i++) {
+                        let pt = currentPositions[i];
+                        let tPt = pt.timestamp;
+                        if (tPt <= ts) {
+                            if (!beforePt || tPt > tBefore) {
+                                beforePt = pt;
+                                tBefore = tPt;
+                            }
+                        } else if (tPt > ts) {
+                            if (!afterPt || tPt < tAfter) {
+                                afterPt = pt;
+                                tAfter = tPt;
+                            }
+                        }
+                    }
+                    
+                    if (beforePt && afterPt) {
+                        let ratio = (ts - tBefore) / (tAfter - tBefore);
+                        let lat1 = parseCoordinate(beforePt.lat);
+                        let lon1 = parseCoordinate(beforePt.lon);
+                        let lat2 = parseCoordinate(afterPt.lat);
+                        let lon2 = parseCoordinate(afterPt.lon);
+                        if (lat1 !== null && lon1 !== null && lat2 !== null && lon2 !== null) {
+                            targetLatLng = [lat1 + (lat2 - lat1) * ratio, lon1 + (lon2 - lon1) * ratio];
+                        }
+                    } else if (beforePt) {
+                        let lat = parseCoordinate(beforePt.lat);
+                        let lon = parseCoordinate(beforePt.lon);
+                        if (lat !== null && lon !== null) targetLatLng = [lat, lon];
+                    } else if (afterPt) {
+                        let lat = parseCoordinate(afterPt.lat);
+                        let lon = parseCoordinate(afterPt.lon);
+                        if (lat !== null && lon !== null) targetLatLng = [lat, lon];
+                    }
+                    
+                    if (targetLatLng) {
+                        // 소수점 2자리 격자 그룹화 (지상 대기 시 좌표 겹침 방지)
+                        let locKey = `${targetLatLng[0].toFixed(2)}_${targetLatLng[1].toFixed(2)}`;
+                        if (!groupedCfds[locKey]) {
+                            groupedCfds[locKey] = { lat: targetLatLng[0], lon: targetLatLng[1], items: [] };
+                        }
+                        groupedCfds[locKey].items.push({ cfd: cfd, ts: ts });
+                    }
+                });
+
+                Object.values(groupedCfds).forEach(group => {
+                    group.items.sort((a,b) => a.ts - b.ts);
+                    
+                    let faultsHtml = group.items.map(item => {
+                        let d = new Date(item.ts);
+                        let tStr = `${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}z`;
+                        return `
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.15);">
+                                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                                    <span style="color: #fca311; font-size: 10px; font-weight: 600;">${item.cfd.fault_code}</span>
+                                    <span style="color: #60a5fa; font-size: 9px; margin-left: 8px;">${tStr}</span>
+                                </div>
+                                <div style="color: #ddd; font-size: 10px; font-weight: 600; white-space: normal; max-width: 180px; line-height: 1.2; margin-top: 2px;">${item.cfd.fault_desc || ''}</div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    let headerTitle = group.items.length > 1 ? `[CFD ALERT] <span style="color:#fff; font-size:9px; font-weight:normal;">(${group.items.length})</span>` : `[CFD ALERT]`;
+
+                    let labelHtml = `<div style="font-family: 'Inter', sans-serif; line-height: 1.1; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0px 2px 2px rgba(0,0,0,0.8); padding-left: 8px; background: rgba(0,0,0,0.6); border-radius: 4px; padding: 6px; border-left: 2px solid #ef4444;">
+                        <div style="color: #ef4444; font-weight: 800; font-size: 11px;">${headerTitle}</div>
+                        ${faultsHtml}
+                    </div>`;
+                    
+                    const warningIcon = L.divIcon({
+                        html: `<div style="position: absolute; display: flex; flex-direction: row; align-items: flex-start; overflow: visible;">
+                                 <div style="color: #ef4444; font-size: 14px; font-weight: bold; text-shadow: 0 0 3px #000; line-height: 1; margin-top: -6px; margin-left: -5px; filter: drop-shadow(0 0 2px red);">⚠️</div>
+                                 <div style="white-space: nowrap; pointer-events: none; margin-left: 4px;">${labelHtml}</div>
+                               </div>`,
+                        className: '',
+                        iconSize: [0, 0],
+                        iconAnchor: [0, 0]
+                    });
+                    
+                    const marker = L.marker([group.lat, group.lon], { icon: warningIcon, zIndexOffset: 2000 });
+                    marker.timestamp = group.items[group.items.length - 1].ts;
+                    window.cfdMarkersArray.push(marker);
+                });
+            }
+            window.isCfdMarkersBuilt = true;
+        }
+
+        if (mapFilterState.showCfd) {
+            window.cfdMarkersArray.forEach(m => {
+                if (m.timestamp <= targetTs) {
+                    if (!cfdLayerGroup.hasLayer(m)) cfdLayerGroup.addLayer(m);
+                } else {
+                    if (cfdLayerGroup.hasLayer(m)) cfdLayerGroup.removeLayer(m);
+                }
+            });
+        } else {
+            cfdLayerGroup.clearLayers();
+        }
+
+        // 5. Update Plane Marker (Interpolation or Exact)
         updatePlaneMarker(targetTs, historyPositions);
     } catch (e) {
         console.error("Timeline update error:", e);
@@ -640,8 +764,16 @@ function updatePlaneMarker(targetTs, historyPositions) {
         const isDataBlockVisible = mapFilterState.acTooltipAlways;
         const inlineLabelDisplay = isDataBlockVisible ? 'none' : 'block';
         
+        let hasActiveCfd = false;
+        if (currentReplayFlight.cfd) {
+            currentReplayFlight.cfd.forEach(cfd => {
+                if (cfd.timestamp > 0 && cfd.timestamp <= targetTs) hasActiveCfd = true;
+            });
+        }
+        const planeColor = hasActiveCfd ? '%23ef4444' : '%23fca311';
+        
         const planeIconHtml = `<div style="position: relative; width: 24px; height: 24px; cursor: pointer;">
-            <div class="plane-icon" style="transform: rotate(${angle}deg); background-image: url('data:image/svg+xml;utf8,<svg fill=%22%23fca311%22 viewBox=%220 0 24 24%22 xmlns=%22http://www.w3.org/2000/svg%22><path d=%22M21,16V14L13,9V3.5A1.5,1.5 0 0,0 11.5,2A1.5,1.5 0 0,0 10,3.5V9L2,14V16L10,13.5V19L8,20.5V22L11.5,21L15,22V20.5L13,19V13.5L21,16Z%22/></svg>'); width: 24px; height: 24px; background-size: contain; background-repeat: no-repeat; filter: drop-shadow(0px 0px 3px rgba(0,0,0,0.8));"></div>
+            <div class="plane-icon" style="transform: rotate(${angle}deg); background-image: url('data:image/svg+xml;utf8,<svg fill=%22${planeColor}%22 viewBox=%220 0 24 24%22 xmlns=%22http://www.w3.org/2000/svg%22><path d=%22M21,16V14L13,9V3.5A1.5,1.5 0 0,0 11.5,2A1.5,1.5 0 0,0 10,3.5V9L2,14V16L10,13.5V19L8,20.5V22L11.5,21L15,22V20.5L13,19V13.5L21,16Z%22/></svg>'); width: 24px; height: 24px; background-size: contain; background-repeat: no-repeat; filter: drop-shadow(0px 0px 3px rgba(0,0,0,0.8));"></div>
             <div class="flight-label" style="display: ${inlineLabelDisplay}; position: absolute; top: 12px; left: 24px; color: #fff; font-family: monospace; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000; white-space: nowrap; pointer-events: none;">${fNum}</div>
         </div>`;
 
@@ -666,10 +798,13 @@ function updatePlaneMarker(targetTs, historyPositions) {
         let altDisp = (displayData.alt != null && displayData.alt !== '') ? displayData.alt : '---';
 
         // Plane Data Block
+        // 블록 테두리 색상도 CFD 발생 시 붉은색 힌트 추가
+        const borderStyle = hasActiveCfd ? 'border-bottom: 2px solid #ef4444;' : 'border-bottom: 1px solid rgba(255,255,255,0.15);';
+        
         let blockHtml = `
             <div class="radar-data-block">
-                <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 3px; margin-bottom: 4px;">
-                    <span style="font-weight: bold; color: #fff; font-size: 12px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; letter-spacing: 0.5px;">${fNum}</span>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; ${borderStyle} padding-bottom: 3px; margin-bottom: 4px;">
+                    <span style="font-weight: bold; color: ${hasActiveCfd ? '#ef4444' : '#fff'}; font-size: 12px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; letter-spacing: 0.5px;">${fNum}</span>
                     <span style="color: #888; font-size: 9px; margin-left: 12px;">${phase}</span>
                 </div>
                 <div style="display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; font-size: 10px;">

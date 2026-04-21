@@ -28,6 +28,25 @@ class PositionReport(Base):
     
     master_flight = relationship("MasterFlight", backref="position_reports")
 
+class CfdMessage(Base):
+    __tablename__ = "live_cfd_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    flight_id = Column(String, ForeignKey("master_flights.id"), nullable=True)
+    
+    flight_number = Column(String, index=True)
+    aircraft_reg = Column(String, index=True)
+    report_time = Column(String)
+    
+    fault_code = Column(String, index=True, nullable=True)
+    fault_desc = Column(String, nullable=True)
+    
+    raw_message = Column(String, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    master_flight = relationship("MasterFlight", backref="cfd_messages")
+
 class Movement(Base):
     __tablename__ = "live_movements"
 

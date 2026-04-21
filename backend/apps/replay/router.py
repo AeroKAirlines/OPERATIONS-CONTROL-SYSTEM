@@ -1,3 +1,5 @@
+import os
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -6,17 +8,19 @@ from backend.core.database import get_db
 from backend.data_sources.common.models import MasterFlight
 from backend.data_sources.acars.models import PositionReport, Movement
 from backend.data_sources.ofp.models import Ofp
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 
-AIRPORT_COORDS = {
-    "CJJ": [36.716, 127.499], "ICN": [37.460, 126.440], "CJU": [33.511, 126.493],
-    "KIX": [34.427, 135.244], "NRT": [35.764, 140.386], "FUK": [33.585, 130.450],
-    "CTS": [42.775, 141.692], "NGO": [34.858, 136.805], "OKA": [26.195, 127.645],
-    "IBR": [36.182, 140.413], "OBO": [42.873, 143.217], "KKJ": [33.845, 130.965],
-    "HIJ": [34.436, 132.919], "TPE": [25.077, 121.232], "UBN": [47.652, 106.818]
-}
+# AIRPORT_COORDS는 이제 backend/core/shared_config.json에서 불러옵니다.
+BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+CONFIG_PATH = os.path.join(BASE_DIR, "backend", "core", "shared_config.json")
+try:
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        shared_config = json.load(f)
+        AIRPORT_COORDS = shared_config.get("AIRPORT_COORDS", {})
+except Exception as e:
+    AIRPORT_COORDS = {}
 
 def _parse_event_time(t_str, base_dt):
     if not t_str: return None
@@ -117,6 +121,11 @@ def get_flight_replay_data(flight_id: str, db: Session = Depends(get_db)):
         .order_by(PositionReport.created_at.asc())\
         .all()
         
+    # 5. Get CFD Data
+    from backend.data_sources.acars.models import CfdMessage
+    cfds = db.query(CfdMessage).filter(CfdMessage.flight_id == flight_id).all()
+    cfd_data = []
+    
     base_dt = datetime.utcnow()
     if master and master.flight_date_z:
         try:
@@ -127,6 +136,20 @@ def get_flight_replay_data(flight_id: str, db: Session = Depends(get_db)):
                     base_dt = base_dt.replace(hour=int(std_clean[:2]), minute=int(std_clean[2:4]))
         except:
             pass
+
+    for c in cfds:
+        dt = _parse_event_time(c.report_time, base_dt)
+        if not dt and c.created_at: dt = c.created_at
+        cfd_data.append({
+            "id": c.id,
+            "flight_number": c.flight_number,
+            "aircraft_reg": c.aircraft_reg,
+            "report_time": c.report_time,
+            "fault_code": c.fault_code,
+            "fault_desc": c.fault_desc,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "timestamp": int(dt.replace(tzinfo=timezone.utc).timestamp() * 1000) if dt else 0
+        })
 
     dep_lat, dep_lon = None, None
     arr_lat, arr_lon = None, None
@@ -163,10 +186,10 @@ def get_flight_replay_data(flight_id: str, db: Session = Depends(get_db)):
             "lon": p.lon,
             "alt": p.alt,
             "fob": p.fob,
-            "speed": getattr(p, "mch", None) or 0,
+            "speed": getattr(p, "mch", None),
             "created_at": p.created_at.isoformat() if p.created_at else None,
             "type": "POS",
-            "_sort_time": dt.timestamp() if dt else 0
+            "_sort_time": dt.replace(tzinfo=timezone.utc).timestamp() if dt else 0
         })
 
     def add_oooi(evt_type, evt_time, evt_fob, evt_lat, evt_lon):
@@ -178,12 +201,12 @@ def get_flight_replay_data(flight_id: str, db: Session = Depends(get_db)):
                 "time": evt_time,
                 "lat": evt_lat,
                 "lon": evt_lon,
-                "alt": "0",
+                "alt": None,
                 "fob": evt_fob,
-                "speed": "0",
+                "speed": None,
                 "created_at": None,
                 "type": evt_type,
-                "_sort_time": dt.timestamp()
+                "_sort_time": dt.replace(tzinfo=timezone.utc).timestamp()
             })
     
     add_oooi("OUT", master.out_time_z or master.std_z, getattr(oooi, "out_fob", None) if oooi else None, dep_lat, dep_lon)
@@ -225,5 +248,6 @@ def get_flight_replay_data(flight_id: str, db: Session = Depends(get_db)):
             "points": ofp.route_data if ofp else [],
             "planned_fuel": ofp.trip_fuel if ofp else None
         } if ofp else None,
-        "positions": merged_positions
+        "positions": merged_positions,
+        "cfd": cfd_data
     }

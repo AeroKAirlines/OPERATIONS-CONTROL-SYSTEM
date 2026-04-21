@@ -224,6 +224,19 @@ try:
     scheduler.start()
     atexit.register(lambda: scheduler.shutdown())
 
+    @portal_app.get("/api/config.js", response_class=HTMLResponse)
+    def serve_config_js():
+        import json
+        config_path = os.path.join(BASE_DIR, "backend", "core", "shared_config.json")
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = f.read()
+            js_content = f"window.SHARED_CONFIG = {data};\nwindow.airportCoords = SHARED_CONFIG.AIRPORT_COORDS;\nwindow.OFP_CONFIG = SHARED_CONFIG;"
+            from fastapi import Response
+            return Response(content=js_content, media_type="application/javascript")
+        except Exception as e:
+            return Response(content=f"console.error('Config load failed: {e}');", media_type="application/javascript")
+
     @portal_app.get("/", response_class=HTMLResponse)
     def portal_home():
         with open(os.path.join(BASE_DIR, "frontend", "portal", "occ_main.html"), "r", encoding="utf-8") as f:
