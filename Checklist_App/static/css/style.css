@@ -1,0 +1,351 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Malgun Gothic', sans-serif;
+    background-color: #f7f9fa;
+    color: #333;
+}
+
+header {
+    background-color: #ffffff;
+    border-bottom: 2px solid #142a59;
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.brand-logo {
+    height: 40px;
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #142a59;
+    padding-left: 15px;
+    border-left: 2px solid #ddd;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.view-toggle {
+    display: flex;
+    border: 1px solid #142a59;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.view-toggle button {
+    padding: 8px 15px;
+    background: white;
+    color: #142a59;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+    font-size: 14px;
+}
+
+.view-toggle button.active {
+    background: #142a59;
+    color: white;
+}
+
+.view-toggle button:hover:not(.active) {
+    background: #e3f0fc;
+}
+
+.btn-search {
+    padding: 7px 15px;
+    background-color: #142a59;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-primary {
+    padding: 10px 20px;
+    background-color: #fca311;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 15px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-primary:hover {
+    background-color: #e08c0a;
+}
+
+main {
+    padding: 30px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.content-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #ddd;
+}
+
+.section-title {
+    font-size: 18px;
+    color: #142a59;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+#aar-input-text {
+    width: 100%;
+    height: 200px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+    resize: vertical;
+    margin-bottom: 5px;
+}
+
+#mel-input-text {
+    width: 100%;
+    height: 100px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+    resize: vertical;
+    margin-bottom: 15px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 50px;
+    color: #888;
+    font-style: italic;
+}
+
+.edit-input {
+    border: 1px solid #ccc;
+    padding: 3px;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: center;
+    background: transparent;
+    border-radius: 3px;
+}
+
+.edit-input:focus {
+    outline: 2px solid #142a59;
+    background: white;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+}
+
+th,
+td {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 5px;
+    font-size: 13px;
+}
+
+th {
+    background-color: #fafafa;
+    font-weight: bold;
+    color: #555;
+}
+
+.print-title {
+    text-align: center;
+    color: #000;
+    text-decoration: underline;
+    text-underline-offset: 5px;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+.print-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 11px;
+    color: #000;
+}
+
+.print-table th,
+.print-table td {
+    border: 1px solid #000;
+    padding: 2px 4px;
+    text-align: center;
+    height: 26px;
+}
+
+.print-table th {
+    background-color: #d9e1f2;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.bg-gray-out {
+    background-color: #d9d9d9 !important;
+    color: #666 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.bg-yellow {
+    background-color: #fff2cc !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.mel-cell {
+    min-width: 90px;
+    max-width: 120px;
+    font-size: 9.5px;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: left;
+    padding-left: 3px !important;
+    vertical-align: middle;
+}
+
+.cpt-cell {
+    min-width: 90px;
+    white-space: nowrap;
+    font-size: 11px;
+}
+
+.route-cell {
+    white-space: nowrap;
+}
+
+.pax-cell {
+    min-width: 40px;
+    text-align: left;
+}
+
+/* 🌟 특이사항 셀 강제 좌측 상단 정렬 및 넓이 확보 (!important 추가) */
+.remarks-cell {
+    min-width: 140px;
+    text-align: left !important;
+    vertical-align: top !important;
+    font-size: 10px;
+    padding: 4px 6px !important;
+    white-space: normal;
+}
+
+.ramp-cell {
+    min-width: 45px;
+}
+
+.tgt-cell {
+    min-width: 45px;
+}
+
+.rwy-cell,
+.weather-cell {
+    position: relative;
+    vertical-align: middle;
+}
+
+.rwy-cell {
+    text-align: left;
+    padding-left: 4px !important;
+    min-width: 55px;
+    white-space: nowrap;
+}
+
+.weather-cell {
+    min-width: 45px;
+}
+
+.hint-corner {
+    position: absolute;
+    bottom: 2px;
+    right: 3px;
+    font-size: 11px;
+    color: #a0a0a0;
+    /* Option 2 #888 */
+    font-weight: bold;
+    /* 가독성을 위해 굵게 (선택사항) */
+    z-index: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+@media print {
+    body {
+        background-color: #fff;
+    }
+
+    header,
+    .no-print,
+    .controls,
+    .btn-primary,
+    .btn-search {
+        display: none !important;
+    }
+
+    main {
+        padding: 0;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .content-box.no-print-border {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    .print-table th {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        background-color: #d9e1f2 !important;
+    }
+
+    .bg-gray-out {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        background-color: #d9d9d9 !important;
+    }
+
+    .bg-yellow {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        background-color: #fff2cc !important;
+    }
+
+    @page {
+        size: A4 landscape;
+        margin: 8mm;
+    }
+}

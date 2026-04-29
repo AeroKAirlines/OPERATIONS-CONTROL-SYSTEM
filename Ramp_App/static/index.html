@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Aero K 청주공항 주기장 관리</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
+    <link href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+    <link href="css/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <header>
+<div class="logo-container">
+    <a href="/"><img src="/portal_static/img/AeroK.svg" alt="Aero K Logo" class="brand-logo" style="border:none;"></a>
+    <span class="header-title">청주공항 주기장 관리 시스템</span>
+</div>
+        <div class="controls">
+            <div class="view-toggle tabs">
+                <button class="tab active" data-target="inputTab">데이터 업로드</button>
+                <button class="tab" data-target="listTab">스케줄 관리</button>
+                <button class="tab" data-target="visualTab">주기장 차트</button>
+                <button class="tab" data-target="regChartTab">기번 차트</button>
+                <button class="tab" data-target="exportTab">주기장 배정표</button>
+                <button class="tab" data-target="msgTab">유지·변경 신청</button>
+            </div>
+        </div>
+    </header>
+
+    <main id="app-container">
+        <!-- 데이터 입력 탭 -->
+        <div id="inputTab" class="tab-content active">
+            <div class="content-box">
+                <div class="panel-header">
+                    <h3 class="section-title">데이터 업로드</h3>
+                </div>
+                <div class="panel-content upload-container">
+                    <div class="upload-group">
+                        <label class="upload-label">주기장 배정표 (PDF)</label>
+                        <input type="file" id="pdfFilesAnalyze" accept=".pdf" multiple class="modern-file-input">
+                    </div>
+                    
+                    <div class="upload-group">
+                        <label class="upload-label">RF AAR MSG (.txt)</label>
+                        <input type="file" id="msgFileAnalyze" accept=".txt" class="modern-file-input mb-5">
+                        <textarea id="msgTextAnalyze" placeholder="AAR MSG 텍스트를 직접 붙여넣거나, 위에서 .txt 파일을 선택하세요." class="modern-textarea"></textarea>
+                    </div>
+                    
+                    <div class="action-row mt-15">
+                        <button type="button" id="btnProcessAnalyze" class="btn-primary">데이터 병합 및 적용</button>
+                        <button type="button" id="btnProcessResetAnalyze" class="btn-danger">전체 초기화 및 분석</button>
+                    </div>
+                    <div id="analyzeStatus" class="status-msg"></div>
+                </div>
+            </div>
+
+            <div class="content-box border-orange">
+                <div class="panel-header">
+                    <h3 class="section-title color-orange">작업 내역 백업 및 복원</h3>
+                </div>
+                <div class="panel-content action-row">
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                    <button type="button" id="btnImport" class="btn-primary bg-orange">파일 불러오기 (.json)</button>
+                    <button type="button" id="btnExport" class="btn-search">현재 상태 내보내기 (.json)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 스케줄 관리 탭 -->
+        <div id="listTab" class="tab-content">
+            <div class="content-box">
+                <div class="panel-header flex-wrap gap-10">
+                    <h3 class="section-title no-margin">기준 스케줄 관리</h3>
+                    <div class="toolbar-group">
+                        <div class="date-filter-box">
+                            <span class="filter-label">기간</span>
+                            <input type="date" id="filterStartDate" class="modern-date-input">
+                            <span class="filter-sep">~</span>
+                            <input type="date" id="filterEndDate" class="modern-date-input">
+                            <button type="button" id="btnFilterClear" class="btn-clear" title="초기화">✖</button>
+                        </div>
+
+                        <select id="selSortTable" class="modern-select outline-navy">
+                            <option value="time">시간순 정렬</option>
+                            <option value="reg">기번순 정렬</option>
+                        </select>
+                        <button type="button" id="btnTableAddRow" class="btn-primary">새 스케줄 추가</button>
+                        <button type="button" id="btnTableSave" class="btn-search">스케줄 저장</button>
+                    </div>
+                </div>
+                <div class="table-wrapper mt-15">
+                    <table class="schedule-table" id="scheduleTable">
+                        <thead>
+                            <tr>
+                                <th width="80">구분</th>
+                                <th width="100">편명</th>
+                                <th width="120">기번 (REG)</th>
+                                <th width="140">날짜</th>
+                                <th width="100">시간 (STD/STA)</th>
+                                <th width="120">출/도착지</th>
+                                <th width="80">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 주기장 간트 차트 탭 -->
+        <div id="visualTab" class="tab-content">
+            <div class="content-box" id="displaySettings">
+                <div class="panel-header cursor-pointer" onclick="togglePanel('displayContent', this)">
+                    <h3 class="section-title no-margin">디스플레이 설정</h3>
+                    <span class="toggle-icon">▲</span>
+                </div>
+                <div id="displayContent" class="panel-content settings-container">
+                    <div class="settings-row">
+                        <div class="settings-label">타임존 설정</div>
+                        <div class="settings-inputs">
+                            <label class="custom-label"><input type="checkbox" id="chkUTC"> <span>시간 축 및 태그를 UTC(Z) 시간으로 표기 (기본: KST)</span></label>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-label">주기장 필터</div>
+                        <div class="settings-inputs">
+                            <label class="custom-label"><input type="checkbox" id="chkShowRareStands"> <span>비선호 주기장 표시 (1, 12, 12R, 13, 13L, 13R)</span></label>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-label">에러 색상 표기</div>
+                        <div class="settings-inputs">
+                            <label class="custom-label color-danger bold"><input type="checkbox" id="chkColorizeError"> <span>연결 오류 스케줄을 다중 색상으로 구분하기 (기본: 단일 붉은색)</span></label>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-label">동일 기번 표기</div>
+                        <div class="settings-inputs">
+                            <label class="custom-label"><input type="checkbox" id="chkHighlightReg"> <span>선택 시 해당 기번(REG)의 전체 스케줄 하이라이트 켜기 (기본: 연결 쌍만 표시)</span></label>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-label">스케줄 태그</div>
+                        <div class="settings-inputs">
+                            <label class="custom-label"><input type="checkbox" id="chkShowReg" checked> <span>기번(REG)</span></label>
+                            <label class="custom-label"><input type="checkbox" id="chkShowFlight" checked> <span>편명</span></label>
+                            <label class="custom-label"><input type="checkbox" id="chkShowUnassigned" checked> <span>[미배정] 텍스트</span></label>
+                            <label class="custom-label"><input type="checkbox" id="chkShowCity"> <span>목적지/출발지</span></label>
+                            <label class="custom-label"><input type="checkbox" id="chkShowTime"> <span>시간</span></label>
+                        </div>
+                    </div>
+                    <div class="settings-row no-border">
+                        <div class="settings-label">토잉 마커</div>
+                        <div class="settings-inputs">
+                            <label class="custom-label"><input type="radio" name="towDisplay" value="icon"> <span>아이콘 표기</span></label>
+                            <label class="custom-label"><input type="radio" name="towDisplay" value="path" checked> <span>이동경로 표기 (1 ➔ 12L)</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="editPanelContainer" class="content-box border-orange" style="display: none; padding-top: 15px;">
+                <!-- 활성 스케줄 조작 -->
+                <div id="editPanelActive" style="display: none;">
+                    <div class="panel-header flex-wrap mb-10">
+                        <h3 class="section-title no-margin color-navy">선택된 스케줄 조작 (LIVE 변경)</h3>
+                        <button type="button" id="btnDeactivateEdit" class="btn-cancel btn-sm">비활성화 (미배정 전환)</button>
+                    </div>
+                    
+                    <!-- 🌟 중앙 정렬된 모던 카드 래퍼 추가 -->
+                    <div class="live-card-wrapper">
+                        <div class="live-info-card">
+                            <div class="live-pair-grid" id="livePairGrid">
+                                <!-- JS에서 동적 주입 -->
+                            </div>
+                            <div id="editOriginalInfo" class="original-info-box" style="display: none;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="edit-controls-wrapper">
+                        <div class="control-group">
+                            <label class="control-label">주기장</label>
+                            <select id="editStand1" class="modern-select"></select>
+                        </div>
+                        <div class="control-group">
+                            <label class="custom-label color-purple bold">
+                                <input type="checkbox" id="editIsTow"> 토잉 (TOW) ➔
+                            </label>
+                            <select id="editStand2" style="display: none;" class="modern-select outline-purple"></select>
+                            <span id="editTowOffsetWrap" style="display: none;" class="tow-offset-text">
+                                (<input type="number" id="editTowOffset" value="30" class="modern-input-sm">분)
+                            </span>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">시간 (ETD/ETA)</label>
+                            <input type="date" id="editDate" class="modern-input">
+                            <select id="editHour" class="modern-select"></select> <span class="time-sep">:</span> <select id="editMin" class="modern-select"></select>
+                        </div>
+                        
+                        <div class="action-buttons right-align">
+                            <button type="button" id="btnSaveEdit" class="btn-search">변경 저장</button>
+                            <button type="button" class="btnCancelEditGlobal btn-cancel">취소</button>
+                            <button type="button" id="btnDeleteEdit" class="btn-danger">삭제</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 비활성 스케줄 조작 -->
+                <div id="editPanelInactive" style="display: none;">
+                    <div class="panel-header mb-15">
+                        <h3 class="section-title no-margin">미배정 스케줄 활성화</h3>
+                    </div>
+                    
+                    <div class="edit-info-box">
+                        <span class="edit-badge-inactive" id="inactiveLabel"></span>
+                        <span class="info-desc">기번을 할당하면 스케줄에 정상 반영됩니다.</span>
+                    </div>
+                    
+                    <div class="edit-controls-wrapper">
+                        <div class="control-group">
+                            <label class="control-label color-navy">기번 배정</label>
+                            <select id="inactiveRegSelect" class="modern-select outline-navy bold" style="min-width: 120px;"></select>
+                        </div>
+                        <div class="action-buttons right-align">
+                            <button type="button" id="btnActivateFlight" class="btn-primary">기번 매칭 및 활성화</button>
+                            <button type="button" class="btnCancelEditGlobal btn-cancel">취소</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="visualization" class="chart-container"></div>
+        </div>
+
+        <!-- 기번 차트 탭 -->
+        <div id="regChartTab" class="tab-content">
+            <div class="content-box">
+                <div class="panel-header cursor-default">
+                    <div class="flex-align-center cursor-pointer" onclick="togglePanel('regDisplayContent', this.parentElement)">
+                        <h3 class="section-title no-margin mr-10">디스플레이 설정</h3>
+                        <span class="toggle-icon">▲</span>
+                    </div>
+                    <button type="button" id="btnRefreshRegChart" class="btn-search">화면 새로고침</button>
+                </div>
+                <div id="regDisplayContent" class="panel-content settings-container">
+                    <div class="settings-row no-border">
+                        <div class="settings-label">타임존 설정</div>
+                        <div class="settings-inputs">
+                            <label class="custom-label"><input type="checkbox" id="chkRegUTC"> <span>시간 축을 UTC(Z) 시간으로 표기 (기본: KST)</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="regDetailPanel" class="content-box detail-panel" style="display: none;">
+                <div class="detail-header">
+                    기번: <span id="detailReg" class="color-orange"></span> 체류 상세 정보
+                </div>
+                <div class="detail-cards">
+                    <!-- 도착 카드 -->
+                    <div class="detail-card card-arr">
+                        <div class="card-title">도착 (ARR)</div>
+                        <div class="card-main">
+                            <span id="detailArrStand" class="stand-badge bg-navy"></span>
+                            <span id="detailArrFlight" class="flight-text"></span>
+                        </div>
+                        <div class="card-sub">
+                            <span id="detailArrCity"></span> / <span id="detailArrTime" class="time-text"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-arrow">➔</div>
+                    
+                    <!-- 출발 카드 -->
+                    <div class="detail-card card-dep">
+                        <div class="card-title">출발 (DEP)</div>
+                        <div class="card-main">
+                            <span id="detailDepStand" class="stand-badge bg-orange"></span>
+                            <span id="detailDepFlight" class="flight-text"></span>
+                        </div>
+                        <div class="card-sub">
+                            <span id="detailDepCity"></span> / <span id="detailDepTime" class="time-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="visualizationReg" class="chart-container"></div>
+        </div>
+
+<!-- 주기장 배정표 (기존 코드의 끝부분) -->
+        <div id="exportTab" class="tab-content">
+            <div class="content-box">
+                <div class="panel-header flex-wrap gap-10">
+                    <h3 class="section-title no-margin">주기장 배정표</h3>
+                    <div class="toolbar-group">
+                        <div class="date-filter-box">
+                            <span class="filter-label">출력 기간</span>
+                            <input type="date" id="exportStartDate" class="modern-date-input">
+                            <span class="filter-sep">~</span>
+                            <input type="date" id="exportEndDate" class="modern-date-input">
+                            <button type="button" id="btnExportFilterClear" class="btn-clear" title="초기화">✖</button>
+                        </div>
+                        <button type="button" id="btnToggleReqComplete" class="btn-primary bg-orange">✔ 신청 완료 ↔ 취소</button>
+                        <button type="button" id="btnRefreshExport" class="btn-search">배정표 최신화</button>
+                    </div>
+                </div>
+                <div class="table-wrapper mt-15">
+                    <table class="export-table" id="exportTable">
+                        <thead>
+                            <tr>
+                                <th>DATE</th>
+                                <th>FLT</th>
+                                <th>REG</th>
+                                <th>DEP</th>
+                                <th>ARR</th>
+                                <th>STD</th>
+                                <th>STA</th>
+                                <th>ETD</th>
+                                <th>ETA</th>
+                                <th>DStand</th>
+                                <th>AStand</th>
+                                <th>LAYOVER</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="exportTotalCount" class="total-count">Total Record(s): 0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🌟 새로 추가된 유지/변경 신청 메시지 탭 -->
+        <div id="msgTab" class="tab-content">
+            <div class="content-box">
+                <div class="panel-header">
+                    <h3 class="section-title no-margin">유지/변경 신청 메시지 생성</h3>
+                    <div class="toolbar-group">
+                        <span class="info-desc mr-10">※ 시간 15분 이상 변동 = 유지 / 주기장 변동 = 변경</span>
+                        <button type="button" id="btnGenerateMsg" class="btn-primary">선택 항목 메시지 생성</button>
+                    </div>
+                </div>
+                <div class="mt-15" style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div class="table-wrapper" style="flex: 3; min-width: 500px; max-height: 600px;">
+                        <table class="schedule-table" id="msgTable">
+                            <thead>
+                                <tr>
+                                    <th width="40"><input type="checkbox" id="chkMsgAll" checked></th>
+                                    <th width="80">구분</th>
+                                    <th width="150">편명 (연결편)</th>
+                                    <th width="80">주기장</th>
+                                    <th>상세 내용 (시간/레이오버)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS 동적 생성 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="flex: 2; min-width: 300px;">
+                        <textarea id="msgOutput" class="modern-textarea" style="height: 100%; min-height: 400px; font-size: 14px;" placeholder="좌측에서 스케줄을 선택한 후 '메시지 생성' 버튼을 누르면 복사하기 쉬운 텍스트가 이곳에 생성됩니다."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

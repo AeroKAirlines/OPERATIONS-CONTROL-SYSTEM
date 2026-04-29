@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aero K 임직원 항공권 예매 결과</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v3.2.1/dist/web/static/pretendard.css" />
+    <link rel="stylesheet" href="/staff_ticket/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <a href="/" style="display:flex; align-items:center; text-decoration:none;">
+                <img src="/portal_static/img/AeroK.svg" alt="Aero K Logo" style="height: 28px; margin-right: 12px; width: auto;">
+                <span style="font-size: 18px; font-weight: 700; color: #142a59; border-left: 2px solid #ddd; padding-left: 12px; letter-spacing: 0px;">Operations Control Center</span>
+            </a>
+        </div>
+        <div class="nav-links">
+            <a href="/booking">예약 현황</a>
+            <a href="/checklist">비행계획</a>
+            <a href="/ramp/ui">주기장 관리</a>
+        </div>
+        <div style="width: 200px;"></div>
+    </header>
+
+    <div class="result-container">
+        <div class="main-content">
+            <div class="result-title">예상 조회 결과</div>
+            <div class="result-desc">선택하신 항공편의 예약률 정보와 요금입니다. 실제 예약은 에어로케이 고객센터를 이용해주세요.</div>
+            
+            <div class="info-box">
+                <div class="info-row">
+                    <div class="info-label">출발일</div>
+                    <div class="info-value">{{ date1 }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">탑승인원</div>
+                    <div class="info-value">총 {{ pax_count }}명</div>
+                </div>
+            </div>
+            
+            <div class="section-title">여정 정보</div>
+            
+            <!-- Outbound -->
+            <div class="flight-row">
+                <div class="fl-type">가는 편</div>
+                <div class="fl-date">{{ date1 }}</div>
+                <div class="fl-route">
+                    <div>
+                        <div class="fl-time">{{ outbound_dep }}</div>
+                        <div class="fl-apt">{{ origin }}</div>
+                    </div>
+                    <div class="fl-arrow">━━━━</div>
+                    <div>
+                        <div class="fl-time">{{ outbound_arr }}</div>
+                        <div class="fl-apt">{{ dest }}</div>
+                    </div>
+                </div>
+                <div class="fl-info">
+                    <div>Aero K <strong>{{ outbound_flight }}</strong></div>
+                    <div style="font-size:13px; margin-top:4px;">{{ ticket_class }}</div>
+                </div>
+                <div class="fl-success {{ ob_status.color }}">
+                    <div style="font-size: 15px;">{{ ob_status.text }}</div>
+                    {% if ob_status.text != '확약(CONFIRM)' %}
+                    <div style="font-size: 12px; margin-top: 2px;">L/F: {{ outbound_lf }}%</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Inbound -->
+            {% if tripType == 'rt' and inbound_flight %}
+            <div class="flight-row">
+                <div class="fl-type">오는 편</div>
+                <div class="fl-date">{{ date2 }}</div>
+                <div class="fl-route">
+                    <div>
+                        <div class="fl-time">{{ inbound_dep }}</div>
+                        <div class="fl-apt">{{ dest }}</div>
+                    </div>
+                    <div class="fl-arrow">━━━━</div>
+                    <div>
+                        <div class="fl-time">{{ inbound_arr }}</div>
+                        <div class="fl-apt">{{ origin }}</div>
+                    </div>
+                </div>
+                <div class="fl-info">
+                    <div>Aero K <strong>{{ inbound_flight }}</strong></div>
+                    <div style="font-size:13px; margin-top:4px;">{{ ticket_class }}</div>
+                </div>
+                <div class="fl-success {{ ib_status.color }}">
+                    <div style="font-size: 15px;">{{ ib_status.text }}</div>
+                    {% if ib_status.text != '확약(CONFIRM)' %}
+                    <div style="font-size: 12px; margin-top: 2px;">L/F: {{ inbound_lf }}%</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="section-title">탑승객 정보</div>
+            <div class="pax-row">
+                <div class="px-badge">탑승객 1</div>
+                <div class="px-name">직원 본인 포함 {{ pax_count }}명</div>
+                <div class="px-detail">
+                    <div>조건: {{ ticket_class }}</div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <div class="sidebar">
+            <div class="price-card">
+                <div class="pc-title">결제 예정 금액</div>
+                
+                <div class="pc-row" style="color:#142a59; font-weight:bold;">
+                    <span>총액</span>
+                    <span>
+                        {% if has_unknown_tax %}
+                            {{ "{:,}".format(fare) }} 원 + α
+                        {% else %}
+                            {{ "{:,}".format(total_price) }} 원
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="pc-row sub">
+                    <span>ㄴ 운임</span>
+                    <span>{{ "{:,}".format(fare) }} 원</span>
+                </div>
+                <div class="pc-row sub">
+                    <span>ㄴ 세금</span>
+                    <span>
+                        {% if has_unknown_tax %}
+                            미정(세금 정보 없음)
+                        {% else %}
+                            {{ "{:,}".format(tax) }} 원
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="pc-total">
+                    <span>총 요금</span>
+                    <span>
+                        {% if has_unknown_tax %}
+                            {{ "{:,}".format(fare) }} 원 + α
+                        {% else %}
+                            {{ "{:,}".format(total_price) }} 원
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <a href="/" class="btn-home">메인 화면으로 돌아가기</a>
+        </div>
+    </div>
+</body>
+</html>

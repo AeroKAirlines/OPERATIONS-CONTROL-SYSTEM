@@ -1,0 +1,152 @@
+:root {
+    --primary-navy: #00256c; /* 대한항공 / AeroK Navy */
+    --bg-main: #f3f6f8;
+    --text-dark: #333;
+    --text-muted: #666;
+    --border-light: #e0e0e0;
+}
+
+body { font-family: 'Pretendard', sans-serif; background: linear-gradient(135deg, #cde6ff 0%, #eef5fc 50%, #fbdde6 100%); margin: 0; color: var(--text-dark); min-height: 100vh; }
+
+/* 헤더 통일 */
+header { background: #fff; padding: 0 40px; height: 80px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); }
+.logo-container { display: flex; align-items: center; }
+.logo-container img { height: 28px; margin-right: 12px; }
+.logo-container span { font-size: 18px; font-weight: 700; color: var(--primary-navy); border-left: 2px solid #ddd; padding-left: 12px; letter-spacing: 0px; }
+.nav-links { display: flex; gap: 40px; position: absolute; left: 50%; transform: translateX(-50%); }
+.nav-links a { text-decoration: none; color: var(--text-dark); font-size: 16px; font-weight: 600; padding: 28px 0; border-bottom: 3px solid transparent; }
+
+/* 상단 검색 퀵바 (Inline Form) */
+.top-search-bar { background: #fff; border-bottom: 1px solid var(--border-light); padding: 15px 0; display: flex; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+.search-inline-form { display: flex; align-items: center; gap: 20px; color: #333; font-size: 15px; }
+.search-inline-form input[type=text], .search-inline-form input[type=date], .search-inline-form select {
+    border: none; border-bottom: 1px solid #ccc; font-family: inherit; font-size: 15px; color: #333; padding: 5px; outline: none; background: transparent;
+}
+.search-inline-form input[type=text] { width: 60px; font-weight: 700; text-align: center; }
+.btn-re-search { background: #fca311; border: 1px solid #fca311; color: #fff; padding: 8px 25px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-left: 10px; }
+.btn-re-search:hover { background: #e59400; border-color: #e59400; color: #fff; }
+
+.container { max-width: 1200px; margin: 0 auto; }
+
+/* 섹션 타이틀 및 스텝 */
+.section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+.section-title { font-size: 20px; font-weight: 700; color: var(--primary-navy); display: flex; align-items: center; gap: 10px; }
+.steps { font-size: 14px; color: #999; }
+.steps strong { color: var(--primary-navy); font-weight: 700; }
+
+/* 날짜 리본 (Date Ribbon) */
+.date-ribbon { background: #fff; border: 1px solid var(--border-light); border-radius: 8px; display: flex; align-items: center; margin-bottom: 20px; overflow: hidden; }
+.ribbon-btn { background: #fff; border: none; padding: 20px; cursor: pointer; color: #999; }
+.ribbon-btn:hover { background: #f9f9f9; color: #333; }
+.ribbon-dates { display: flex; flex: 1; }
+.date-box { flex: 1; text-align: center; padding: 15px 0; border-right: 1px solid #f0f0f0; cursor: pointer; text-decoration: none; color: inherit; }
+.date-box:last-child { border-right: none; }
+.date-box:hover { background: #f9fbfd; }
+.date-box.active { border-bottom: 3px solid var(--primary-navy); background: #f9fbfd; }
+.db-day { font-size: 14px; color: #555; margin-bottom: 5px; }
+.date-box.active .db-day { font-weight: 700; color: var(--primary-navy); }
+.db-status { font-size: 15px; font-weight: 700; }
+
+/* 항공편 리스트 카드 */
+.flight-card { background: #fff; border: 1px solid var(--border-light); border-radius: 8px; display: flex; margin-bottom: 15px; transition: 0.2s; position: relative; overflow: hidden; }
+.flight-card:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color: #bbb; }
+
+.fc-left { flex: 1; padding: 30px; display: flex; flex-direction: column; justify-content: center; }
+.timeline-row { display: flex; align-items: center; gap: 20px; }
+.time-block { text-align: center; }
+.time-txt { font-size: 24px; font-weight: 800; color: var(--primary-navy); }
+.apt-txt { font-size: 13px; color: #666; margin-top: 2px; }
+
+.duration-block { flex: 1; text-align: center; position: relative; }
+.dur-txt { font-size: 12px; color: #888; margin-bottom: 5px; }
+.dur-line { height: 1px; background: #ccc; width: 100%; position: relative; }
+.dur-line::after { content: '▶'; position: absolute; right: -5px; top: -7px; font-size: 12px; color: #999; }
+
+.flight-no-badge { font-size: 12px; color: #555; display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; white-space: nowrap; }
+
+.fc-right { width: 350px; border-left: 1px solid var(--border-light); display: flex; flex-direction: column; }
+.class-select-box { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; cursor: pointer; transition: 0.2s; }
+.class-select-box:hover { background: #f9fbfd; }
+
+/* 라디오 버튼 선택 효과 */
+input[type="radio"] { display: none; }
+label:has(input:checked) .flight-card { border: 2px solid var(--primary-navy); box-shadow: 0 0 0 1px var(--primary-navy); }
+label:has(input:checked) .class-select-box { background: #f0f4f8; }
+
+.cls-title { font-size: 14px; color: #555; margin-bottom: 10px; }
+.cls-price { font-size: 22px; font-weight: 800; color: var(--primary-navy); margin-bottom: 8px; text-align: center; }
+
+/* 결과 화면 (booking_result.html) 전용 스타일 */
+.result-container { max-width: 1200px; margin: 40px auto; padding: 20px; display: flex; gap: 40px; }
+.main-content { flex: 1; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+.sidebar { width: 350px; }
+
+.result-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #1a237e; }
+.result-desc { font-size: 16px; margin-bottom: 30px; color: #333; }
+
+.info-box { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 40px; }
+.info-row { display: flex; margin-bottom: 10px; }
+.info-row:last-child { margin-bottom: 0; }
+.info-label { width: 100px; color: #555; }
+.info-value { font-weight: bold; color: #333; }
+
+.flight-row { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+.fl-type { background: #333; color: #fff; padding: 4px 8px; font-size: 12px; border-radius: 4px; margin-right: 15px; }
+.fl-date { width: 120px; font-weight: bold; }
+.fl-route { flex: 1; display: flex; align-items: center; }
+.fl-time { font-size: 18px; font-weight: bold; }
+.fl-apt { font-size: 13px; color: #666; margin-top: 4px; }
+.fl-arrow { margin: 0 20px; color: #ccc; }
+.fl-info { text-align: right; color: #555; }
+.fl-success { font-weight: bold; margin-left: 15px; padding: 6px 12px; border-radius: 4px; text-align: center; min-width: 100px; }
+
+.pax-row { display: flex; padding: 15px 0; border-bottom: 1px solid #eee; }
+.px-badge { background: #5c6bc0; color: #fff; padding: 4px 8px; font-size: 12px; border-radius: 4px; margin-right: 15px; }
+.px-name { font-weight: bold; flex: 1; }
+.px-detail { flex: 2; color: #555; font-size: 14px; }
+
+.btn-home { display: block; width: 100%; text-align: center; background: #fca311; color: #fff; text-decoration: none; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 30px; transition: background 0.2s; }
+.btn-home:hover { background: #e59400; }
+.price-card { border: 1px solid var(--primary-navy, #142a59); border-radius: 12px; padding: 30px; background: rgba(255, 255, 255, 0.95); position: sticky; top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+.pc-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+.pc-row { display: flex; justify-content: space-between; margin-bottom: 10px; color: #555; }
+.pc-row.sub { padding-left: 15px; font-size: 14px; color: #777; }
+.pc-total { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; font-size: 20px; font-weight: bold; }
+.bg-green { background: #e8f5e9; color: #2e7d32; }
+.bg-yellow { background: #fff3e0; color: #f57c00; }
+.bg-red { background: #ffebee; color: #c62828; }
+.bg-gray { background: #f0f0f0; color: #757575; }
+
+.status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+.st-green { background: #e8f5e9; color: #2e7d32; }
+.st-yellow { background: #fff3e0; color: #f57c00; }
+.st-red { background: #ffebee; color: #c62828; }
+.st-gray { background: #f0f0f0; color: #757575; }
+
+.btn-submit-wrap { text-align: right; margin-top: 30px; }
+.btn-next { background: #fca311; color: #fff; border: none; padding: 15px 50px; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; transition: 0.2s; }
+.btn-next:hover { background: #e59400; }
+
+/* 공항 선택 모달 스타일 (occ_main과 동일) */
+.airport-dropdown {
+    position: absolute; top: 100%; left: 0; width: 380px; background: #fff; border: 1px solid #ccc;
+    border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 100; display: none; padding: 15px;
+    max-height: 400px; overflow-y: auto; margin-top: 10px; text-align: left;
+}
+.airport-dropdown.active { display: block; }
+.category-header {
+    padding: 12px 10px; font-size: 15px; font-weight: 700; color: #142a59; cursor: pointer;
+    border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;
+}
+.category-header:hover { background: #f9fbfd; }
+.airport-list { display: none; flex-wrap: wrap; padding: 10px; gap: 10px; }
+.airport-list.active { display: flex; }
+.airport-item {
+    width: calc(50% - 5px); padding: 8px 10px; font-size: 13px; cursor: pointer;
+    border-radius: 4px; display: flex; justify-content: space-between; box-sizing: border-box;
+}
+.airport-item:hover { background: #f0f4f8; }
+.airport-item.disabled { color: #ccc; cursor: not-allowed; pointer-events: none; }
+.airport-code { font-weight: bold; color: #142a59; }
+.airport-name { color: #555; }
+.airport-item.disabled .airport-code, .airport-item.disabled .airport-name { color: #ccc; }

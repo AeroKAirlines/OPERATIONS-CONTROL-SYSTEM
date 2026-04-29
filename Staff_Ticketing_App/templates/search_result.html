@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aero K 항공편 검색 결과</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v3.2.1/dist/web/static/pretendard.css" />
+    <link rel="stylesheet" href="/staff_ticket/static/css/style.css">
+</head>
+<body>
+    <!-- Header (occ_main과 동일) -->
+    <header>
+        <div class="logo-container">
+            <a href="/" style="display:flex; align-items:center; text-decoration:none;">
+                <img src="/portal_static/img/AeroK.svg" alt="Aero K Logo" style="height: 28px; margin-right: 12px; width: auto;">
+                <span style="font-size: 18px; font-weight: 700; color: #142a59; border-left: 2px solid #ddd; padding-left: 12px; letter-spacing: 0px;">Operations Control Center</span>
+            </a>
+        </div>
+        <div class="nav-links">
+            <a href="/booking">예약 현황</a>
+            <a href="/checklist">비행계획</a>
+            <a href="/ramp/ui">주기장 관리</a>
+        </div>
+        <div style="width: 200px;"></div> <!-- 우측 여백 맞춤 -->
+    </header>
+
+    <!-- Top Search Bar (재검색) -->
+    <div class="top-search-bar">
+        <form class="search-inline-form" action="/staff_ticket/search" method="GET">
+            <input type="hidden" name="tripType" value="{{ tripType }}">
+            
+            <div class="search-field-inline" style="position:relative;">
+                <input type="text" id="origin" name="origin" value="{{ origin }}" size="3" readonly style="cursor:pointer; font-weight:bold; text-align:center;">
+                <div id="origin-dropdown" class="airport-dropdown"></div>
+            </div>
+            <span style="color:#ccc;">⇄</span>
+            <div class="search-field-inline" style="position:relative;">
+                <input type="text" id="dest" name="dest" value="{{ dest }}" size="3" readonly style="cursor:pointer; font-weight:bold; text-align:center;">
+                <div id="dest-dropdown" class="airport-dropdown"></div>
+            </div>
+            
+            <span style="color:#ccc; margin: 0 10px;">|</span>
+            
+            <input type="date" name="date1" value="{{ date1 }}">
+            {% if tripType == 'rt' %}
+            <span>~</span>
+            <input type="date" name="date2" value="{{ date2 }}">
+            {% endif %}
+            
+            <span style="color:#ccc; margin: 0 10px;">|</span>
+            
+            <select name="pax_count" style="font-weight: bold;">
+                <option value="1" {% if pax_count == '1' %}selected{% endif %}>1명</option>
+                <option value="2" {% if pax_count == '2' %}selected{% endif %}>2명</option>
+                <option value="3" {% if pax_count == '3' %}selected{% endif %}>3명</option>
+                <option value="4" {% if pax_count == '4' %}selected{% endif %}>4명</option>
+                <option value="5" {% if pax_count == '5' %}selected{% endif %}>5명</option>
+                <option value="6" {% if pax_count == '6' %}selected{% endif %}>6명</option>
+            </select>
+            
+            <span style="color:#ccc; margin: 0 10px;">|</span>
+            
+            <select name="ticket_class">
+                <option value="SUBLO" {% if ticket_class == 'SUBLO' %}selected{% endif %}>ZED (SUBLO)</option>
+                <option value="NOSUB" {% if ticket_class == 'NOSUB' %}selected{% endif %}>ZED (NO SUB)</option>
+                <option value="BIZ" {% if ticket_class == 'BIZ' %}selected{% endif %}>출장 (CONFIRM)</option>
+            </select>
+            
+            <button type="submit" class="btn-re-search">재검색</button>
+        </form>
+    </div>
+
+    <form action="/staff_ticket/result" method="POST">
+        <input type="hidden" name="origin" value="{{ origin }}">
+        <input type="hidden" name="dest" value="{{ dest }}">
+        <input type="hidden" name="date1" value="{{ date1 }}">
+        <input type="hidden" name="date2" value="{{ date2 }}">
+        <input type="hidden" name="tripType" value="{{ tripType }}">
+        <input type="hidden" name="ticket_class" value="{{ ticket_class }}">
+        <input type="hidden" name="pax_count" value="{{ pax_count }}">
+
+        <div class="container" style="background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-top: 40px; margin-bottom: 40px;">
+            <!-- Outbound Section -->
+            <div class="section-header">
+                <div class="section-title">가는 편 <span style="font-size:16px; color:#666; font-weight:normal; margin-left:10px;">{{ origin }} ➔ {{ dest }} ({{ date1 }})</span></div>
+                <div class="steps" style="background:#fff; padding:5px 15px; border-radius:20px; font-size:13px; font-weight:600; box-shadow:0 2px 5px rgba(0,0,0,0.05);">✓ 검색 &nbsp;❯&nbsp; <strong style="color:#142a59;">② 항공편</strong> &nbsp;❯&nbsp; <span style="color:#999;">③ 조회/완료</span></div>
+            </div>
+
+            <!-- Date Ribbon (Outbound) -->
+            <div class="date-ribbon">
+                <button type="button" class="ribbon-btn" onclick="document.querySelector('input[name=date1]').stepDown(); document.querySelector('.search-inline-form').submit();">❮</button>
+                <div class="ribbon-dates">
+                    {% for d in ob_ribbon %}
+                    <a href="/staff_ticket/search?origin={{origin}}&dest={{dest}}&date1={{d.date}}&date2={{date2}}&tripType={{tripType}}&ticket_class={{ticket_class}}&pax_count={{pax_count}}" class="date-box {% if d.is_active %}active{% endif %}">
+                        <div class="db-day">{{ d.display_day }}({{ d.display_wk }})</div>
+                        <div class="db-status" style="color: {{ d.status_color }}">{{ d.status_txt }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+                <button type="button" class="ribbon-btn" onclick="document.querySelector('input[name=date1]').stepUp(); document.querySelector('.search-inline-form').submit();">❯</button>
+            </div>
+
+            <!-- Flight List (Outbound) -->
+            {% if not outbound_flights %}
+                <div style="text-align:center; padding:50px; background:#fff; border:1px solid #e0e0e0; border-radius:8px; color:#666;">조회된 항공편이 없습니다.</div>
+            {% endif %}
+            {% for f in outbound_flights %}
+            <label>
+                <input type="radio" name="outbound_flight" value="{{ f.flight_no }}" required>
+                <input type="hidden" name="outbound_lf_{{ f.flight_no }}" value="{{ f.lf }}">
+                <input type="hidden" name="outbound_dep_{{ f.flight_no }}" value="{{ f.dep }}">
+                <input type="hidden" name="outbound_arr_{{ f.flight_no }}" value="{{ f.arr }}">
+                <div class="flight-card">
+                    <div class="fc-left">
+                        <div class="timeline-row">
+                            <div class="time-block">
+                                <div class="time-txt">{{ f.dep }}</div>
+                                <div class="apt-txt">{{ origin }}</div>
+                            </div>
+                            <div class="duration-block">
+                                <div class="dur-txt">{{ f.block_time }}</div>
+                                <div class="dur-line"></div>
+                                <div class="flight-no-badge">
+                                    <span>Aero K</span> <strong>{{ f.flight_no }}</strong>
+                                </div>
+                            </div>
+                            <div class="time-block">
+                                <div class="time-txt">{{ f.arr }}{% if f.next_day %}<sup style="font-size:12px; color:#c62828;">+1</sup>{% endif %}</div>
+                                <div class="apt-txt">{{ dest }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fc-right">
+                        <div class="class-select-box">
+                            {% if f.status == 'green' %}
+                                <div class="cls-price" style="color: #2e7d32;">여유</div>
+                                <div class="status-badge st-green">L/F: {{ f.lf }}%</div>
+                            {% elif f.status == 'yellow' %}
+                                <div class="cls-price" style="color: #f57c00;">혼잡</div>
+                                <div class="status-badge st-yellow">L/F: {{ f.lf }}%</div>
+                            {% elif f.status == 'red' %}
+                                <div class="cls-price" style="color: #c62828;">임박</div>
+                                <div class="status-badge st-red">L/F: {{ f.lf }}%</div>
+                            {% else %}
+                                <div class="cls-price" style="color: #757575;">만석</div>
+                                <div class="status-badge st-gray">L/F: {{ f.lf }}%</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </label>
+            {% endfor %}
+
+            <!-- Inbound Section (If Round Trip) -->
+            {% if tripType == 'rt' %}
+            <div class="section-header" style="margin-top: 60px;">
+                <div class="section-title">오는 편 <span style="font-size:16px; color:#666; font-weight:normal; margin-left:10px;">{{ dest }} ➔ {{ origin }} ({{ date2 }})</span></div>
+            </div>
+
+            <!-- Date Ribbon (Inbound) -->
+            <div class="date-ribbon">
+                <button type="button" class="ribbon-btn" onclick="document.querySelector('input[name=date2]').stepDown(); document.querySelector('.search-inline-form').submit();">❮</button>
+                <div class="ribbon-dates">
+                    {% for d in ib_ribbon %}
+                    <a href="/staff_ticket/search?origin={{origin}}&dest={{dest}}&date1={{date1}}&date2={{d.date}}&tripType={{tripType}}&ticket_class={{ticket_class}}&pax_count={{pax_count}}" class="date-box {% if d.is_active %}active{% endif %}">
+                        <div class="db-day">{{ d.display_day }}({{ d.display_wk }})</div>
+                        <div class="db-status" style="color: {{ d.status_color }}">{{ d.status_txt }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+                <button type="button" class="ribbon-btn" onclick="document.querySelector('input[name=date2]').stepUp(); document.querySelector('.search-inline-form').submit();">❯</button>
+            </div>
+
+            <!-- Flight List (Inbound) -->
+            {% if not inbound_flights %}
+                <div style="text-align:center; padding:50px; background:#fff; border:1px solid #e0e0e0; border-radius:8px; color:#666;">조회된 항공편이 없습니다.</div>
+            {% endif %}
+            {% for f in inbound_flights %}
+            <label>
+                <input type="radio" name="inbound_flight" value="{{ f.flight_no }}" required>
+                <input type="hidden" name="inbound_lf_{{ f.flight_no }}" value="{{ f.lf }}">
+                <input type="hidden" name="inbound_dep_{{ f.flight_no }}" value="{{ f.dep }}">
+                <input type="hidden" name="inbound_arr_{{ f.flight_no }}" value="{{ f.arr }}">
+                <div class="flight-card">
+                    <div class="fc-left">
+                        <div class="timeline-row">
+                            <div class="time-block">
+                                <div class="time-txt">{{ f.dep }}</div>
+                                <div class="apt-txt">{{ dest }}</div>
+                            </div>
+                            <div class="duration-block">
+                                <div class="dur-txt">{{ f.block_time }}</div>
+                                <div class="dur-line"></div>
+                                <div class="flight-no-badge">
+                                    <span>Aero K</span> <strong>{{ f.flight_no }}</strong>
+                                </div>
+                            </div>
+                            <div class="time-block">
+                                <div class="time-txt">{{ f.arr }}{% if f.next_day %}<sup style="font-size:12px; color:#c62828;">+1</sup>{% endif %}</div>
+                                <div class="apt-txt">{{ origin }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fc-right">
+                        <div class="class-select-box">
+                            {% if f.status == 'green' %}
+                                <div class="cls-price" style="color: #2e7d32;">여유</div>
+                                <div class="status-badge st-green">L/F: {{ f.lf }}%</div>
+                            {% elif f.status == 'yellow' %}
+                                <div class="cls-price" style="color: #f57c00;">혼잡</div>
+                                <div class="status-badge st-yellow">L/F: {{ f.lf }}%</div>
+                            {% elif f.status == 'red' %}
+                                <div class="cls-price" style="color: #c62828;">임박</div>
+                                <div class="status-badge st-red">L/F: {{ f.lf }}%</div>
+                            {% else %}
+                                <div class="cls-price" style="color: #757575;">만석</div>
+                                <div class="status-badge st-gray">L/F: {{ f.lf }}%</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </label>
+            {% endfor %}
+            {% endif %}
+
+            <div class="btn-submit-wrap">
+                <button type="submit" class="btn-next" onclick="copyFlightData()">결과 확인</button>
+            </div>
+            <input type="hidden" name="outbound_lf" id="ob_lf" value="0">
+            <input type="hidden" name="inbound_lf" id="ib_lf" value="0">
+            <input type="hidden" name="outbound_dep" id="ob_dep" value="">
+            <input type="hidden" name="outbound_arr" id="ob_arr" value="">
+            <input type="hidden" name="inbound_dep" id="ib_dep" value="">
+            <input type="hidden" name="inbound_arr" id="ib_arr" value="">
+        </div>
+    </form>
+
+    <script>
+        function copyFlightData() {
+            const ob = document.querySelector('input[name="outbound_flight"]:checked');
+            if (ob) {
+                document.getElementById('ob_lf').value = document.querySelector(`input[name="outbound_lf_${ob.value}"]`).value;
+                document.getElementById('ob_dep').value = document.querySelector(`input[name="outbound_dep_${ob.value}"]`).value;
+                document.getElementById('ob_arr').value = document.querySelector(`input[name="outbound_arr_${ob.value}"]`).value;
+            }
+            
+            const ib = document.querySelector('input[name="inbound_flight"]:checked');
+            if (ib) {
+                document.getElementById('ib_lf').value = document.querySelector(`input[name="inbound_lf_${ib.value}"]`).value;
+                document.getElementById('ib_dep').value = document.querySelector(`input[name="inbound_dep_${ib.value}"]`).value;
+                document.getElementById('ib_arr').value = document.querySelector(`input[name="inbound_arr_${ib.value}"]`).value;
+            }
+        }
+
+        // --- 재검색창 공항 아코디언 로직 ---
+        const airportData = {
+            'KR': { title: '대한민국', list: [{code: 'CJJ', name: '청주'}, {code: 'ICN', name: '인천'}, {code: 'CJU', name: '제주'}] },
+            'JP': { title: '일본', list: [{code: 'CTS', name: '삿포로'}, {code: 'OBO', name: '오비히로'}, {code: 'HNA', name: '하나마키'}, {code: 'IBR', name: '이바라키'}, {code: 'NRT', name: '도쿄'}, {code: 'NGO', name: '나고야'}, {code: 'MMJ', name: '마츠모토'}, {code: 'KIX', name: '오사카'}, {code: 'UKB', name: '고베'}, {code: 'HIJ', name: '히로시마'}, {code: 'FUK', name: '후쿠오카'}, {code: 'KKJ', name: '기타큐슈'}, {code: 'OKA', name: '오키나와'}] },
+            'NEA': { title: '동북아시아', list: [{code: 'TPE', name: '타이페이'}, {code: 'HUN', name: '화롄'}, {code: 'TNA', name: '지난'}, {code: 'SJW', name: '석가장'}, {code: 'YIH', name: '이창'}, {code: 'UBN', name: '울란바토르'}] },
+            'SEA': { title: '동남아시아', list: [{code: 'CRK', name: '클락'}, {code: 'DAD', name: '다낭'}, {code: 'CXR', name: '나트랑'}] }
+        };
+
+        const routeMap = {
+            'CJJ': ['CJU', 'CTS', 'OBO', 'HNA', 'IBR', 'NRT', 'NGO', 'MMJ', 'KIX', 'UKB', 'HIJ', 'FUK', 'KKJ', 'OKA', 'TPE', 'SJW', 'YIH', 'UBN', 'CRK', 'DAD', 'CXR'],
+            'ICN': ['OBO', 'IBR', 'TNA', 'HUN']
+        };
+
+        const reverseRouteMap = {};
+        for (const [origin, dests] of Object.entries(routeMap)) {
+            for (const dest of dests) {
+                if (!reverseRouteMap[dest]) reverseRouteMap[dest] = [];
+                reverseRouteMap[dest].push(origin);
+            }
+        }
+
+        function getAvailableDests(origin) {
+            return routeMap[origin] || reverseRouteMap[origin] || [];
+        }
+
+        function renderDropdown(dropdownId, inputId, isDest, pairedInputId) {
+            const dropdown = document.getElementById(dropdownId);
+            let html = '';
+            
+            const pairedVal = document.getElementById(pairedInputId).value;
+            let allowedCodes = null;
+            if (pairedVal) allowedCodes = getAvailableDests(pairedVal);
+
+            for (const [region, data] of Object.entries(airportData)) {
+                html += `<div class="category-header" onclick="this.nextElementSibling.classList.toggle('active')">
+                            ${data.title} <span>▼</span>
+                         </div>
+                         <div class="airport-list">`;
+                for (const apt of data.list) {
+                    const isDisabled = allowedCodes && !allowedCodes.includes(apt.code) && apt.code !== pairedVal;
+                    const disClass = isDisabled ? 'disabled' : '';
+                    html += `<div class="airport-item ${disClass}" onclick="selectAirport('${inputId}', '${apt.code}', '${dropdownId}')">
+                                <span class="airport-code">${apt.code}</span>
+                                <span class="airport-name">${apt.name}</span>
+                             </div>`;
+                }
+                html += `</div>`;
+            }
+            dropdown.innerHTML = html;
+        }
+
+        function selectAirport(inputId, code, dropdownId) {
+            document.getElementById(inputId).value = code;
+            document.getElementById(dropdownId).classList.remove('active');
+            
+            const isOrigin = inputId === 'origin';
+            const pairedInputId = isOrigin ? 'dest' : 'origin';
+            const pairedVal = document.getElementById(pairedInputId).value;
+            
+            const allowed = getAvailableDests(code);
+            if (pairedVal && !allowed.includes(pairedVal)) {
+                document.getElementById(pairedInputId).value = '';
+            }
+        }
+
+        function setupDropdownToggle(inputId, dropdownId, isDest, pairedInputId) {
+            document.getElementById(inputId).addEventListener('click', (e) => {
+                document.querySelectorAll('.airport-dropdown').forEach(d => { if(d.id !== dropdownId) d.classList.remove('active')});
+                renderDropdown(dropdownId, inputId, isDest, pairedInputId);
+                document.getElementById(dropdownId).classList.toggle('active');
+                e.stopPropagation();
+            });
+            document.getElementById(dropdownId).addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+
+        setupDropdownToggle('origin', 'origin-dropdown', false, 'dest');
+        setupDropdownToggle('dest', 'dest-dropdown', true, 'origin');
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.airport-dropdown').forEach(d => d.classList.remove('active'));
+        });
+    </script>
+</body>
+</html>

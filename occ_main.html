@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Aero K OCC Integrated System</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v3.2.1/dist/web/static/pretendard.css" />
+    <link rel="stylesheet" href="/portal_static/css/portal_style.css">
+    <style>
+        .icon { display: inline-block; width: 20px; height: 20px; vertical-align: middle; }
+        .header-icon { width: 18px; height: 18px; opacity: 0.7; }
+        
+        /* 공항 선택 모달 스타일 */
+        .airport-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 380px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 100;
+            display: none;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .airport-dropdown.active { display: block; }
+        .category-header {
+            padding: 12px 10px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #142a59;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .category-header:hover { background: #f9fbfd; }
+        .airport-list {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 10px;
+            gap: 10px;
+            display: none;
+        }
+        .airport-list.active { display: flex; }
+        .airport-item {
+            width: calc(50% - 5px);
+            padding: 8px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .airport-item:hover { background: #f0f4f8; }
+        .airport-item.disabled { color: #ccc; cursor: not-allowed; pointer-events: none; }
+        .airport-code { font-weight: bold; color: #142a59; }
+        .airport-name { color: #555; }
+        .airport-item.disabled .airport-code, .airport-item.disabled .airport-name { color: #ccc; }
+
+        /* 다구간 지원용 폼 래퍼 */
+        .route-row { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 15px; position: relative; }
+        
+        .class-select {
+            font-size: 15px; font-weight: 700; color: #333; border: none; outline: none; 
+            background: transparent; width: 100%; cursor: pointer; padding-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <a href="/" style="display:flex; align-items:center; text-decoration:none;">
+                <img src="/portal_static/img/AeroK.svg" alt="Aero K Logo" style="height: 28px; margin-right: 12px; width: auto;">
+                <span style="font-size: 18px; font-weight: 700; color: #142a59; border-left: 2px solid #ddd; padding-left: 12px; letter-spacing: 0px;">Operations Control Center</span>
+            </a>
+        </div>
+        
+        <div class="nav-links">
+            <a href="/booking">예약 현황</a>
+            <a href="/checklist">비행계획</a>
+            <a href="/ramp/ui">주기장 관리</a>
+        </div>
+
+        <div class="header-right">
+            <a href="#"><svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg> 이벤트</a>
+            <a href="#"><svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 자주 묻는 질문</a>
+            <a href="#"><svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> 로그아웃</a>
+        </div>
+    </header>
+
+    <div class="hero-section">
+        <div class="alert-banner">
+            <svg style="width:16px; height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <strong>시스템 공지:</strong> 개인용 테스트 서버입니다
+        </div>
+
+        <div class="booking-widget">
+            <div class="widget-tabs">
+                <div class="widget-tab active">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 임직원 예매 (ZED/ID)
+                </div>
+                <div class="widget-tab" onclick="window.location.href='/checklist'">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg> 업무 스케줄
+                </div>
+            </div>
+
+            <form class="widget-content" action="/staff_ticket/search" method="GET" id="searchForm">
+                <div class="ticket-types">
+                    <button type="button" class="ticket-type-btn active" id="btn-zed">임직원 ZED</button>
+                    <button type="button" class="ticket-type-btn" id="btn-biz">출장 항공권</button>
+                    <div style="margin-left: 20px;">
+                        <input type="radio" id="rt" name="tripType" value="rt" checked> <label for="rt" style="margin-right: 10px;">왕복</label>
+                        <input type="radio" id="ow" name="tripType" value="ow"> <label for="ow" style="margin-right: 10px;">편도</label>
+                        <input type="radio" id="md" name="tripType" value="md"> <label for="md">다구간</label>
+                    </div>
+                </div>
+
+                <div id="routeContainer">
+                    <div class="route-row">
+                        <!-- From -->
+                        <div class="search-field" style="flex: 1.5; cursor: pointer; position: relative;">
+                            <label>출발지</label>
+                            <input type="text" id="origin" name="origin" placeholder="출발지" readonly style="font-size: 24px; font-weight: 700; color: #333; border: none; outline: none; background: transparent; width: 100%; cursor:pointer;">
+                            <div class="sub-value" id="origin-name">선택하세요</div>
+                            <!-- 드롭다운 -->
+                            <div class="airport-dropdown" id="origin-dropdown"></div>
+                        </div>
+                        
+                        <button type="button" class="swap-btn" id="btn-swap">
+                            <svg style="width: 16px; height: 16px; color: #555;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        </button>
+
+                        <!-- To -->
+                        <div class="search-field" style="flex: 1.5; padding-left: 10px; cursor: pointer; position: relative;">
+                            <label>도착지</label>
+                            <input type="text" id="dest" name="dest" placeholder="도착지" readonly style="font-size: 24px; font-weight: 700; color: #333; border: none; outline: none; background: transparent; width: 100%; cursor:pointer;">
+                            <div class="sub-value" id="dest-name">선택하세요</div>
+                            <!-- 드롭다운 -->
+                            <div class="airport-dropdown" id="dest-dropdown"></div>
+                        </div>
+
+                        <div class="vertical-divider"></div>
+
+                        <!-- Date -->
+                        <div class="search-field" style="flex: 2;">
+                            <label>일정</label>
+                            <div style="display: flex; align-items: center; gap: 5px; margin-top: 5px;">
+                                <input type="date" name="date1" id="date1" style="font-size: 14px; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 5px; width: 120px;" required>
+                                <span id="date-separator">~</span>
+                                <input type="date" name="date2" id="date2" style="font-size: 14px; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 5px; width: 120px;">
+                            </div>
+                        </div>
+
+                        <div class="vertical-divider"></div>
+
+                        <!-- Pax Count -->
+                        <div class="search-field" style="flex: 1;">
+                            <label>탑승 인원</label>
+                            <select name="pax_count" class="class-select">
+                                <option value="1">1명</option>
+                                <option value="2">2명</option>
+                                <option value="3">3명</option>
+                                <option value="4">4명</option>
+                                <option value="5">5명</option>
+                                <option value="6">6명</option>
+                            </select>
+                        </div>
+
+                        <div class="vertical-divider"></div>
+
+                        <!-- Class -->
+                        <div class="search-field" style="flex: 1.5;">
+                            <label>항공권 종류</label>
+                            <select name="ticket_class" id="ticket_class" class="class-select">
+                                <option value="SUBLO">SUBLO</option>
+                                <option value="NOSUB">NO SUB</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 다구간 2번째 여정 (기본 숨김) -->
+                    <div class="route-row" id="multi-row-2" style="display: none; padding-top: 15px; border-top: 1px dashed #ccc;">
+                        <div class="search-field" style="flex: 1.5; position: relative;">
+                            <label>출발지 2</label>
+                            <input type="text" id="origin2" name="origin2" placeholder="출발지" readonly style="font-size: 24px; font-weight: 700; color: #333; border: none; background: transparent; width: 100%; cursor:pointer;">
+                            <div class="sub-value" id="origin2-name">선택하세요</div>
+                            <div class="airport-dropdown" id="origin2-dropdown"></div>
+                        </div>
+                        <div style="width: 36px;"></div> <!-- 스왑버튼 자리 맞춤 -->
+                        <div class="search-field" style="flex: 1.5; padding-left: 10px; position: relative;">
+                            <label>도착지 2</label>
+                            <input type="text" id="dest2" name="dest2" placeholder="도착지" readonly style="font-size: 24px; font-weight: 700; color: #333; border: none; background: transparent; width: 100%; cursor:pointer;">
+                            <div class="sub-value" id="dest2-name">선택하세요</div>
+                            <div class="airport-dropdown" id="dest2-dropdown"></div>
+                        </div>
+                        <div class="vertical-divider"></div>
+                        <div class="search-field" style="flex: 2;">
+                            <label>출발일 2</label>
+                            <div style="margin-top: 5px;"><input type="date" name="date3" id="date3" style="font-size: 14px; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 5px; width: 120px;"></div>
+                        </div>
+                        <div class="vertical-divider" style="visibility:hidden;"></div>
+                        <div class="search-field" style="flex: 1.5; visibility:hidden;"></div>
+                    </div>
+                </div>
+
+                <div class="search-action">
+                    <button type="submit" class="btn-search-flight">항공편 검색</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Services Section -->
+    <div class="services-banner">
+        <h3>Aero K OCC의 새로운 시스템을 한눈에</h3>
+        <button class="btn-outline">통합 대시보드 보러가기</button>
+    </div>
+
+    <main class="main-content">
+        <div class="cards-grid">
+            <!-- App 1: Booking -->
+            <a href="/booking" class="service-card">
+                <div class="card-img-placeholder card-1-img">
+                    <svg style="width:60px; height:60px; color:rgba(255,255,255,0.8);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                </div>
+                <div class="card-text">
+                    <div class="card-title">예약률 모니터링 시스템</div>
+                    <div class="card-desc">국내선 및 국제선 전 노선 일일 예약률을 실시간으로 확인하고 수요 추이를 분석하세요.</div>
+                </div>
+            </a>
+
+            <!-- App 2: Checklist -->
+            <a href="/checklist" class="service-card">
+                <div class="card-img-placeholder card-2-img">
+                    <svg style="width:60px; height:60px; color:rgba(255,255,255,0.8);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                </div>
+                <div class="card-text">
+                    <div class="card-title">비행계획 체크리스트</div>
+                    <div class="card-desc">오늘의 비행계획 체크리스트를 잊지 마세요.</div>
+                </div>
+            </a>
+
+            <!-- App 3: Ramp -->
+            <a href="/ramp/ui" class="service-card">
+                <div class="card-img-placeholder card-3-img">
+                    <svg style="width:60px; height:60px; color:rgba(255,255,255,0.8);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div class="card-text">
+                    <div class="card-title">청주공항 주기장 관리</div>
+                    <div class="card-desc">일일 주기장 배정 현황을 시각화하고 타임라인 기반으로 스케줄을 관리하세요.</div>
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <footer>
+        <div style="margin-bottom: 10px; font-size: 14px; font-weight: bold; color: #333;">Aero K Operations Control Center</div>
+        &copy; 2026 KIM MINGI. All rights reserved. TEST SERVER 환경입니다.
+    </footer>
+
+    <script>
+        const airportData = {
+            'KR': { title: '대한민국', list: [{code: 'CJJ', name: '청주'}, {code: 'ICN', name: '인천'}, {code: 'CJU', name: '제주'}] },
+            'JP': { title: '일본', list: [{code: 'CTS', name: '삿포로'}, {code: 'OBO', name: '오비히로'}, {code: 'HNA', name: '하나마키'}, {code: 'IBR', name: '이바라키'}, {code: 'NRT', name: '도쿄'}, {code: 'NGO', name: '나고야'}, {code: 'MMJ', name: '마츠모토'}, {code: 'KIX', name: '오사카'}, {code: 'UKB', name: '고베'}, {code: 'HIJ', name: '히로시마'}, {code: 'FUK', name: '후쿠오카'}, {code: 'KKJ', name: '기타큐슈'}, {code: 'OKA', name: '오키나와'}] },
+            'NEA': { title: '동북아시아', list: [{code: 'TPE', name: '타이페이'}, {code: 'HUN', name: '화롄'}, {code: 'TNA', name: '지난'}, {code: 'SJW', name: '석가장'}, {code: 'YIH', name: '이창'}, {code: 'UBN', name: '울란바토르'}] },
+            'SEA': { title: '동남아시아', list: [{code: 'CRK', name: '클락'}, {code: 'DAD', name: '다낭'}, {code: 'CXR', name: '나트랑'}] }
+        };
+
+        const routeMap = {
+            'CJJ': ['CJU', 'CTS', 'OBO', 'HNA', 'IBR', 'NRT', 'NGO', 'MMJ', 'KIX', 'UKB', 'HIJ', 'FUK', 'KKJ', 'OKA', 'TPE', 'SJW', 'YIH', 'UBN', 'CRK', 'DAD', 'CXR'],
+            'ICN': ['OBO', 'IBR', 'TNA', 'HUN']
+        };
+
+        // 역방향 라우트 계산
+        const reverseRouteMap = {};
+        for (const [origin, dests] of Object.entries(routeMap)) {
+            for (const dest of dests) {
+                if (!reverseRouteMap[dest]) reverseRouteMap[dest] = [];
+                reverseRouteMap[dest].push(origin);
+            }
+        }
+
+        function getAvailableDests(origin) {
+            return routeMap[origin] || reverseRouteMap[origin] || [];
+        }
+
+        function renderDropdown(dropdownId, inputId, labelId, isDest, pairedInputId) {
+            const dropdown = document.getElementById(dropdownId);
+            let html = '';
+            
+            const pairedVal = document.getElementById(pairedInputId).value;
+            let allowedCodes = null;
+            if (pairedVal) {
+                allowedCodes = getAvailableDests(pairedVal);
+            }
+
+            for (const [region, data] of Object.entries(airportData)) {
+                html += `<div class="category-header" onclick="this.nextElementSibling.classList.toggle('active')">
+                            ${data.title} <span>▼</span>
+                         </div>
+                         <div class="airport-list">`;
+                for (const apt of data.list) {
+                    const isDisabled = allowedCodes && !allowedCodes.includes(apt.code) && apt.code !== pairedVal;
+                    const disClass = isDisabled ? 'disabled' : '';
+                    html += `<div class="airport-item ${disClass}" onclick="selectAirport('${inputId}', '${labelId}', '${apt.code}', '${apt.name}', '${dropdownId}')">
+                                <span class="airport-code">${apt.code}</span>
+                                <span class="airport-name">${apt.name}</span>
+                             </div>`;
+                }
+                html += `</div>`;
+            }
+            dropdown.innerHTML = html;
+        }
+
+        function selectAirport(inputId, labelId, code, name, dropdownId) {
+            document.getElementById(inputId).value = code;
+            document.getElementById(labelId).innerText = name;
+            document.getElementById(dropdownId).classList.remove('active');
+            
+            // 반대편 필드가 비어있거나 불가능한 노선이면 초기화
+            const isOrigin = inputId.includes('origin');
+            const pairedInputId = isOrigin ? inputId.replace('origin', 'dest') : inputId.replace('dest', 'origin');
+            const pairedLabelId = isOrigin ? labelId.replace('origin', 'dest') : labelId.replace('dest', 'origin');
+            const pairedVal = document.getElementById(pairedInputId).value;
+            
+            const allowed = getAvailableDests(code);
+            if (pairedVal && !allowed.includes(pairedVal)) {
+                document.getElementById(pairedInputId).value = '';
+                document.getElementById(pairedLabelId).innerText = '선택하세요';
+            }
+        }
+
+        function setupDropdownToggle(inputId, dropdownId, labelId, isDest, pairedInputId) {
+            document.getElementById(inputId).parentElement.addEventListener('click', (e) => {
+                // 드롭다운 내부(지역 선택, 공항 선택 등)를 클릭했을 때는 창이 닫히거나 재렌더링되지 않도록 방어
+                if (e.target.closest('.airport-dropdown')) {
+                    e.stopPropagation(); // 상위(document)로 클릭 이벤트가 넘어가는 것을 막음
+                    return;
+                }
+                
+                // 다른 드롭다운 닫기
+                document.querySelectorAll('.airport-dropdown').forEach(d => { if(d.id !== dropdownId) d.classList.remove('active')});
+                
+                renderDropdown(dropdownId, inputId, labelId, isDest, pairedInputId);
+                document.getElementById(dropdownId).classList.toggle('active');
+                e.stopPropagation();
+            });
+        }
+
+        setupDropdownToggle('origin', 'origin-dropdown', 'origin-name', false, 'dest');
+        setupDropdownToggle('dest', 'dest-dropdown', 'dest-name', true, 'origin');
+        setupDropdownToggle('origin2', 'origin2-dropdown', 'origin2-name', false, 'dest2');
+        setupDropdownToggle('dest2', 'dest2-dropdown', 'dest2-name', true, 'origin2');
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.airport-dropdown').forEach(d => d.classList.remove('active'));
+        });
+
+        // 스왑 버튼
+        document.getElementById('btn-swap').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const o = document.getElementById('origin');
+            const d = document.getElementById('dest');
+            const oName = document.getElementById('origin-name');
+            const dName = document.getElementById('dest-name');
+            
+            const tVal = o.value; o.value = d.value; d.value = tVal;
+            const tName = oName.innerText; oName.innerText = dName.innerText; dName.innerText = tName;
+        });
+
+        // 티켓 종류 탭
+        const btnZed = document.getElementById('btn-zed');
+        const btnBiz = document.getElementById('btn-biz');
+        const clsSelect = document.getElementById('ticket_class');
+
+        btnZed.addEventListener('click', () => {
+            btnZed.classList.add('active'); btnBiz.classList.remove('active');
+            clsSelect.innerHTML = `<option value="SUBLO">SUBLO</option><option value="NOSUB">NO SUB</option>`;
+        });
+
+        btnBiz.addEventListener('click', () => {
+            btnBiz.classList.add('active'); btnZed.classList.remove('active');
+            clsSelect.innerHTML = `<option value="BIZ">출장</option>`;
+        });
+
+        // 여정 타입 (왕복/편도/다구간)
+        const radios = document.querySelectorAll('input[name="tripType"]');
+        const date2 = document.getElementById('date2');
+        const sep = document.getElementById('date-separator');
+        const multiRow = document.getElementById('multi-row-2');
+        const date3 = document.getElementById('date3');
+
+        radios.forEach(r => r.addEventListener('change', (e) => {
+            const type = e.target.value;
+            if (type === 'rt') {
+                date2.style.display = 'inline-block';
+                sep.style.display = 'inline-block';
+                date2.required = true;
+                multiRow.style.display = 'none';
+                date3.required = false;
+            } else if (type === 'ow') {
+                date2.style.display = 'none';
+                sep.style.display = 'none';
+                date2.required = false;
+                multiRow.style.display = 'none';
+                date3.required = false;
+            } else if (type === 'md') {
+                date2.style.display = 'none';
+                sep.style.display = 'none';
+                date2.required = false;
+                multiRow.style.display = 'flex';
+                date3.required = true;
+            }
+        }));
+    </script>
+</body>
+</html>

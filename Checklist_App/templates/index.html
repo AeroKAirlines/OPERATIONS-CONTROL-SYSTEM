@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Aero K 비행계획 체크리스트</title>
+    <link rel="stylesheet" href="/checklist/static/css/style.css">
+</head>
+<body>
+    <header>
+<div class="logo-container">
+    <img src="/portal_static/img/AeroK.svg" alt="Aero K Logo" class="brand-logo" style="cursor: pointer;" onclick="window.location.href='/'">
+    <span class="header-title">비행계획 체크리스트 시스템</span>
+</div>
+        <div class="controls">
+            <div class="view-toggle" id="main-tabs">
+                <button class="active" onclick="switchTab('tab-input', this)">1. AAR 입력 및 수정</button>
+                <button onclick="switchTab('tab-print', this)">2. 출력용 표 (Checklist)</button>
+                <button onclick="switchTab('tab-db', this)">3. 스케줄 DB 관리</button>
+            </div>
+        </div>
+    </header>
+
+    <main id="app-container">
+        <!-- 탭 1 -->
+        <section id="tab-input" class="tab-content active">
+            <div class="content-box">
+                <h2 class="section-title">A. 데이터 입력 (AAR & MEL)</h2>
+                <textarea id="aar-input-text" placeholder="여기에 [AAR 메일 본문] 전체를 붙여넣으세요..."></textarea>
+                <textarea id="mel-input-text" placeholder="여기에 [MEL/CDL 엑셀 현황] 전체를 복사하여 붙여넣으세요... (선택 사항)" style="width: 100%; height: 100px; padding: 15px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 13px; resize: vertical; margin-bottom: 15px;"></textarea>
+                <button class="btn-primary" onclick="parseAAR()">데이터 분석 시작</button>
+            </div>
+
+            <div class="content-box" id="edit-section" style="display: none; margin-top:20px; border-color:#fca311;">
+                <h2 class="section-title">B. AAR 데이터 검토 및 수정</h2>
+                <table class="print-table" style="margin-bottom: 15px;">
+                    <thead>
+                        <tr>
+                            <th>날짜(DD.MM)</th><th>편명</th><th>출발</th><th>도착</th><th>ETD(Z)</th><th>ETA(Z)</th><th>기번</th><th>기장</th>
+                        </tr>
+                    </thead>
+                    <tbody id="edit-tbody"></tbody>
+                </table>
+                <button class="btn-primary" style="background-color:#142a59;" onclick="generateChecklist()">✅ 데이터 확정 및 체크리스트 생성</button>
+            </div>
+        </section>
+
+        <!-- 탭 2 -->
+        <section id="tab-print" class="tab-content" style="display: none;">
+            <div class="content-box no-print-border">
+                <div class="print-header">
+                    <h1 class="print-title" id="print-main-title">비행계획 체크리스트</h1>
+                    <div style="text-align: right; margin-bottom: 5px;" class="no-print">
+                        <span style="font-weight:bold; font-size:14px; color:#142a59;">근무 기준일 선택: </span>
+                        <input type="date" id="print-date-filter" onchange="filterPrintTable()" style="padding: 5px; margin-right: 10px; border-radius:4px; border:1px solid #ccc;">
+                        <select id="print-shift-filter" onchange="filterPrintTable()" style="padding: 5px; margin-right: 10px; border-radius:4px; border:1px solid #ccc;">
+                            <option value="all">전체 근무조 출력</option>
+                            <option value="morning">오전 근무조 (06:30~14:30)</option>
+                            <option value="afternoon">오후 근무조 (14:30~22:30)</option>
+                            <option value="night">야간 근무조 (22:30~06:30)</option>
+                        </select>
+                        <button class="btn-search" onclick="window.print()">🖨️ 인쇄하기 (Ctrl+P)</button>
+                    </div>
+                </div>
+                
+                <table class="print-table" id="print-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">MEL</th><th rowspan="2">기번</th><th rowspan="2">기장</th><th rowspan="2">편명</th><th rowspan="2">ROUTE</th>
+                            <th colspan="2">TIME(Z)</th><th colspan="2">TIME(L)</th><th rowspan="2">ALTN</th><th rowspan="2">PAX</th>
+                            <th rowspan="2">WEATHER<br><span style="font-size:9px; font-weight:normal;">(RWY/WIND/OAT/QNH)</span></th><th rowspan="2">SPOT</th>
+                            <th colspan="6">CHECKLIST</th><th colspan="2">FUEL</th><th colspan="2">EXTRA FUEL</th>
+                            <th rowspan="2">DOW</th><th rowspan="2">TAXI</th><th rowspan="2">브리핑</th><th rowspan="2">특이사항</th>
+                        </tr>
+                        <tr>
+                            <th>ETD</th><th>ETA</th><th>ETD</th><th>ETA</th>
+                            <th>ATC</th><th>ACH</th><th>OFP</th><th>DB</th><th>TK</th><th>급유</th>
+                            <th>램프</th><th>목표</th><th>사유</th><th>용량</th>
+                        </tr>
+                    </thead>
+                    <tbody id="print-tbody">
+                        <tr><td colspan="27" class="empty-state">AAR 데이터를 확정하면 표가 생성됩니다.</td></tr>
+                    </tbody>
+                </table>
+                
+                <!-- 야간편 검토용 체크리스트 추가 -->
+                <div id="night-review-section" style="margin-top: 20px; page-break-inside: avoid; display: none;">
+                    <h3 style="font-size: 14px; margin-bottom: 5px; color: #142a59;">✈️ 야간편 검토 (필리핀, 베트남, 몽골) - PAYLOAD/FUEL CHECK</h3>
+                    <table class="print-table" id="night-review-table">
+                        <thead>
+                            <tr>
+                                <th colspan="10" style="background-color:#e8f0fe;">OUTBOUND (가는 편)</th>
+                                <th colspan="10" style="background-color:#fce8e6;">INBOUND (오는 편)</th>
+                            </tr>
+                            <tr>
+                                <th>DATE</th><th>REG</th><th>FLT</th><th>RTE</th><th>TIME(Z)</th><th>ALTN</th><th>PAX</th><th>FUEL</th><th>EXTRA</th><th>DOW</th>
+                                <th>DATE</th><th>REG</th><th>FLT</th><th>RTE</th><th>TIME(Z)</th><th>ALTN</th><th>PAX</th><th>FUEL</th><th>EXTRA</th><th>DOW</th>
+                            </tr>
+                        </thead>
+                        <tbody id="night-review-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 3 -->
+        <section id="tab-db" class="tab-content" style="display: none;"><div class="content-box"><h2 class="section-title">스케줄 DB</h2></div></section>
+    </main>
+    <script src="/checklist/static/js/scripts.js"></script>
+</body>
+</html>
